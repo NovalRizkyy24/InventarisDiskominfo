@@ -1,0 +1,1 @@
+export * from "@/pages/kepala-dinas/home";

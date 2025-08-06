@@ -1,0 +1,1 @@
+export * from "@/pages/penata-usaha-barang/home";
