@@ -15,15 +15,31 @@ function App() {
         {/* Gunakan DashboardLayout sebagai cangkang untuk semua peran */}
         <Route element={<DashboardLayout />}>
           {routes
-            .filter(route => route.layout !== 'auth') // Ambil semua rute selain auth
+            .filter((route) => route.layout !== "auth")
             .map(({ layout, pages }) =>
-              pages.map(({ path, element }) => (
-                <Route
-                  key={`${layout}${path}`}
-                  path={`/${layout}${path}`}
-                  element={element}
-                />
-              ))
+              pages.map((page) => {
+                // Jika halaman memiliki sub-rute (seperti Data Master)
+                if (page.subRoutes) {
+                  return page.subRoutes.map(({ path, element }) => (
+                    <Route
+                      key={`${layout}${path}`}
+                      path={`/${layout}${path}`}
+                      element={element}
+                    />
+                  ));
+                }
+                // Jika halaman adalah rute biasa tanpa submenu
+                if (page.path) {
+                  return (
+                    <Route
+                      key={`${layout}${page.path}`}
+                      path={`/${layout}${page.path}`}
+                      element={page.element}
+                    />
+                  );
+                }
+                return null;
+              })
             )}
         </Route>
       </Route>

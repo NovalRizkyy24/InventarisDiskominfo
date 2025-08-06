@@ -1,13 +1,22 @@
-import { 
-  HomeIcon, 
-  ServerStackIcon, 
-  RectangleStackIcon, 
-  UserIcon, 
-  TableCellsIcon 
+import {
+  HomeIcon,
+  UserCircleIcon,
+  TableCellsIcon,
+  InformationCircleIcon,
+  ServerStackIcon,
+  RectangleStackIcon,
 } from "@heroicons/react/24/solid";
 
 // Impor halaman dari folder masing-masing
-import { Home as AdminHome } from "@/pages/admin";
+import { 
+  Home as AdminHome, 
+  DataPengguna, 
+  DataBarang, 
+  Notifikasi, 
+  Profil, 
+  EditPengguna,
+  TambahPengguna 
+} from "@/pages/admin";
 import { Home as PengurusBarangHome } from "@/pages/pengurus-barang";
 import { Home as PenataUsahaBarangHome } from "@/pages/penata-usaha-barang";
 import { Home as PpkHome } from "@/pages/ppk";
@@ -23,9 +32,51 @@ const routes = [
     layout: "admin",
     role: "Admin",
     pages: [
-      { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <AdminHome /> },
-      // Contoh halaman lain untuk admin
-      // { icon: <UserIcon {...icon} />, name: "Kelola User", path: "/users", element: <KelolaUser /> },
+      { 
+        icon: <HomeIcon {...icon} />, 
+        name: "Dashboard", 
+        path: "/home", 
+        element: <AdminHome /> 
+      },
+      {
+        icon: <ServerStackIcon {...icon} />,
+        name: "Data Master",
+        subRoutes: [
+          { 
+            icon: <UserCircleIcon {...icon} />, 
+            name: "Data Pengguna", 
+            path: "/data-pengguna", 
+            element: <DataPengguna /> 
+          },
+          { 
+            icon: <TableCellsIcon {...icon} />, 
+            name: "Data Barang", 
+            path: "/data-barang", 
+            element: <DataBarang /> 
+          },
+        ],
+      },
+      { 
+        icon: <InformationCircleIcon {...icon} />, 
+        name: "Notifikasi", 
+        path: "/notifikasi", 
+        element: <Notifikasi /> 
+      },
+      { 
+        icon: <RectangleStackIcon {...icon} />, 
+        name: "Profil", 
+        path: "/profil", 
+        element: <Profil /> 
+      },
+      // Rute ini tidak akan muncul di navigasi, hanya untuk routing halaman
+      { 
+        path: "/edit-pengguna/:id", 
+        element: <EditPengguna /> 
+      },
+      {
+        path: "/tambah-pengguna",
+        element: <TambahPengguna />
+      }
     ],
   },
   // --- Rute untuk Pengurus Barang ---
@@ -33,7 +84,12 @@ const routes = [
     layout: "pengurus-barang",
     role: "Pengurus Barang",
     pages: [
-      { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <PengurusBarangHome /> },
+      { 
+        icon: <HomeIcon {...icon} />, 
+        name: "Dashboard", 
+        path: "/home", 
+        element: <PengurusBarangHome /> 
+      },
     ],
   },
   // --- Rute untuk Penata Usaha Barang ---
@@ -41,7 +97,12 @@ const routes = [
     layout: "penata-usaha-barang",
     role: "Penata Usaha Barang",
     pages: [
-      { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <PenataUsahaBarangHome /> },
+      { 
+        icon: <HomeIcon {...icon} />, 
+        name: "Dashboard", 
+        path: "/home", 
+        element: <PenataUsahaBarangHome /> 
+      },
     ],
   },
   // --- Rute untuk PPK ---
@@ -49,7 +110,12 @@ const routes = [
     layout: "ppk",
     role: "PPK",
     pages: [
-      { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <PpkHome /> },
+      { 
+        icon: <HomeIcon {...icon} />, 
+        name: "Dashboard", 
+        path: "/home", 
+        element: <PpkHome /> 
+      },
     ],
   },
   // --- Rute untuk Kepala Bidang ---
@@ -57,7 +123,12 @@ const routes = [
     layout: "kepala-bidang",
     role: "Kepala Bidang",
     pages: [
-      { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <KabidHome /> },
+      { 
+        icon: <HomeIcon {...icon} />, 
+        name: "Dashboard", 
+        path: "/home", 
+        element: <KabidHome /> 
+      },
     ],
   },
   // --- Rute untuk Kepala Dinas ---
@@ -65,7 +136,12 @@ const routes = [
     layout: "kepala-dinas",
     role: "Kepala Dinas",
     pages: [
-      { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <KadisHome /> },
+      { 
+        icon: <HomeIcon {...icon} />, 
+        name: "Dashboard", 
+        path: "/home", 
+        element: <KadisHome /> 
+      },
     ],
   },
   // --- Rute untuk Autentikasi (Publik) ---
