@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Card, CardHeader, CardBody, CardFooter, Typography, Button, Select, Option, Textarea,
+  Card, CardHeader, CardBody, CardFooter, Typography, Button, Select, Option, Textarea, Input
 } from "@material-tailwind/react";
+
 
 export function TambahPeminjaman() {
   const navigate = useNavigate();
