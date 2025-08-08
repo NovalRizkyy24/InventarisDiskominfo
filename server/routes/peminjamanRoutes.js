@@ -15,4 +15,7 @@ router.route('/peminjaman')
     
 router.put('/peminjaman/:id/status', updateStatusPeminjaman);
 
+router.route('/peminjaman/:id')
+    .get(getPeminjamanById);
+
 module.exports = router;

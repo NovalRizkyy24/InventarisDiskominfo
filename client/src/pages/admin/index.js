@@ -7,3 +7,7 @@ export * from "./EditPengguna";
 export * from "./TambahPengguna";
 export * from "./TambahBarang"; 
 export * from "./EditBarang";   
+export * from "./DataPengadaan";
+export * from "./DetailPengadaan";
+export * from "./DataPeminjaman";
+export * from "./DetailPeminjaman";

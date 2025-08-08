@@ -115,8 +115,31 @@ const updateStatusPeminjaman = async (req, res) => {
     }
 };
 
+const getPeminjamanById = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const query = `
+            SELECT p.*, b.nama_barang, b.kode_barang, u.nama as nama_peminjam
+            FROM peminjaman p
+            JOIN barang b ON p.barang_id = b.id
+            JOIN users u ON p.user_peminjam_id = u.id
+            WHERE p.id = $1;
+        `;
+        const { rows } = await pool.query(query, [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Data peminjaman tidak ditemukan' });
+        }
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Error mengambil detail peminjaman:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 module.exports = {
     createPeminjaman,
     getAllPeminjaman,
-    updateStatusPeminjaman
+    updateStatusPeminjaman,
+    getPeminjamanById, 
 };
+

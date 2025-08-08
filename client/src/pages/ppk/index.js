@@ -1,1 +1,3 @@
-export * from "@/pages/ppk/home";
+export * from "./home";
+export * from "./TambahPengadaan";
+export * from "./TambahPeminjaman";
