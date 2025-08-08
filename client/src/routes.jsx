@@ -15,7 +15,9 @@ import {
   Notifikasi, 
   Profil, 
   EditPengguna,
-  TambahPengguna 
+  TambahPengguna,
+  TambahBarang,  
+  EditBarang  
 } from "@/pages/admin";
 import { Home as PengurusBarangHome } from "@/pages/pengurus-barang";
 import { Home as PenataUsahaBarangHome } from "@/pages/penata-usaha-barang";
@@ -76,7 +78,13 @@ const routes = [
       {
         path: "/tambah-pengguna",
         element: <TambahPengguna />
-      }
+      },
+      { path: "/tambah-barang", 
+        element: <TambahBarang /> 
+      }, 
+      { path: "/edit-barang/:id", 
+        element: <EditBarang /> 
+      }, 
     ],
   },
   // --- Rute untuk Pengurus Barang ---

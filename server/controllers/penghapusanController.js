@@ -1,0 +1,105 @@
+const pool = require('../config/db');
+
+// @desc    Create a new penghapusan request
+// @route   POST /api/penghapusan
+// @access  Private
+const createPenghapusan = async (req, res) => {
+    const { barang_id, alasan_penghapusan } = req.body;
+    const user_pengusul_id = req.user.id;
+
+    if (!barang_id || !alasan_penghapusan) {
+        return res.status(400).json({ message: 'Data penghapusan tidak lengkap.' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO penghapusan (barang_id, user_pengusul_id, alasan_penghapusan)
+            VALUES ($1, $2, $3) RETURNING *;
+        `;
+        const values = [barang_id, user_pengusul_id, alasan_penghapusan];
+        const { rows } = await pool.query(query, values);
+        res.status(201).json({ message: 'Usulan penghapusan berhasil dibuat.', penghapusan: rows[0] });
+    } catch (error) {
+        console.error('Error saat membuat usulan penghapusan:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    }
+};
+
+// @desc    Get all penghapusan requests
+// @route   GET /api/penghapusan
+// @access  Private
+const getAllPenghapusan = async (req, res) => {
+    try {
+        const query = `
+            SELECT pn.*, b.nama_barang, b.kode_barang, u.nama as nama_pengusul
+            FROM penghapusan pn
+            JOIN barang b ON pn.barang_id = b.id
+            JOIN users u ON pn.user_pengusul_id = u.id
+            ORDER BY pn.tanggal_pengajuan DESC;
+        `;
+        const { rows } = await pool.query(query);
+        res.json(rows);
+    } catch (error) {
+        console.error('Error mengambil data penghapusan:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Update status of a penghapusan request
+// @route   PUT /api/penghapusan/:id/status
+// @access  Private
+const updateStatusPenghapusan = async (req, res) => {
+    const { id } = req.params;
+    const { status_baru, catatan } = req.body;
+    const user_validator_id = req.user.id;
+
+    const validStatuses = ['Divalidasi Pengurus Barang', 'Divalidasi Penatausahaan', 'Disetujui Kepala Dinas', 'Ditolak'];
+    if (!validStatuses.includes(status_baru)) {
+        return res.status(400).json({ message: 'Status baru tidak valid.' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const currentData = await client.query('SELECT status, barang_id FROM penghapusan WHERE id = $1', [id]);
+        if (currentData.rows.length === 0) throw new Error('NotFound');
+        const { status: status_sebelum, barang_id } = currentData.rows[0];
+
+        // Update status di tabel penghapusan
+        const updateQuery = `
+            UPDATE penghapusan SET status = $1, catatan_penolakan = CASE WHEN $1 = 'Ditolak' THEN $2 ELSE catatan_penolakan END
+            WHERE id = $3;
+        `;
+        await client.query(updateQuery, [status_baru, catatan, id]);
+        
+        // Soft delete: Jika disetujui Kepala Dinas, ubah status barang menjadi 'Tidak Aktif'
+        if (status_baru === 'Disetujui Kepala Dinas') {
+            await client.query("UPDATE barang SET status = 'Tidak Aktif' WHERE id = $1", [barang_id]);
+        }
+
+        // Log validasi
+        const logQuery = `
+            INSERT INTO log_validasi (penghapusan_id, user_validator_id, status_sebelum, status_sesudah, catatan)
+            VALUES ($1, $2, $3, $4, $5);
+        `;
+        await client.query(logQuery, [id, user_validator_id, status_sebelum, status_baru, catatan]);
+
+        await client.query('COMMIT');
+        res.json({ message: `Status penghapusan berhasil diubah.` });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        if (error.message === 'NotFound') return res.status(404).json({ message: 'Usulan penghapusan tidak ditemukan.' });
+        console.error('Error saat update status penghapusan:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    } finally {
+        client.release();
+    }
+};
+
+module.exports = {
+    createPenghapusan,
+    getAllPenghapusan,
+    updateStatusPenghapusan
+};

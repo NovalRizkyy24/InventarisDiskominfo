@@ -5,3 +5,5 @@ export * from "./Notifikasi";
 export * from "./Profil";
 export * from "./EditPengguna";
 export * from "./TambahPengguna";
+export * from "./TambahBarang"; 
+export * from "./EditBarang";   
