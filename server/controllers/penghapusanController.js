@@ -98,8 +98,30 @@ const updateStatusPenghapusan = async (req, res) => {
     }
 };
 
+const getPenghapusanById = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const query = `
+            SELECT pn.*, b.nama_barang, b.kode_barang, u.nama as nama_pengusul
+            FROM penghapusan pn
+            JOIN barang b ON pn.barang_id = b.id
+            JOIN users u ON pn.user_pengusul_id = u.id
+            WHERE pn.id = $1;
+        `;
+        const { rows } = await pool.query(query, [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Usulan penghapusan tidak ditemukan' });
+        }
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Error mengambil detail penghapusan:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 module.exports = {
     createPenghapusan,
     getAllPenghapusan,
-    updateStatusPenghapusan
+    updateStatusPenghapusan,
+    getPenghapusanById, 
 };

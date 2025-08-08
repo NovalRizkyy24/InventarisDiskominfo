@@ -11,3 +11,5 @@ export * from "./DataPengadaan";
 export * from "./DetailPengadaan";
 export * from "./DataPeminjaman";
 export * from "./DetailPeminjaman";
+export * from "./DataPenghapusan";
+export * from "./DetailPenghapusan";

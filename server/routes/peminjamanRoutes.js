@@ -3,7 +3,8 @@ const router = express.Router();
 const {
     createPeminjaman,
     getAllPeminjaman,
-    updateStatusPeminjaman
+    updateStatusPeminjaman,
+    getPeminjamanById
 } = require('../controllers/peminjamanController');
 const verifyToken = require('../middleware/verifyToken');
 
