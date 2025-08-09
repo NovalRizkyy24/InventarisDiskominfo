@@ -52,6 +52,7 @@ const updateStatusPenghapusan = async (req, res) => {
     const { id } = req.params;
     const { status_baru, catatan } = req.body;
     const user_validator_id = req.user.id;
+    const finalCatatan = catatan || null;
 
     const validStatuses = ['Divalidasi Pengurus Barang', 'Divalidasi Penatausahaan', 'Disetujui Kepala Dinas', 'Ditolak'];
     if (!validStatuses.includes(status_baru)) {
@@ -66,24 +67,25 @@ const updateStatusPenghapusan = async (req, res) => {
         if (currentData.rows.length === 0) throw new Error('NotFound');
         const { status: status_sebelum, barang_id } = currentData.rows[0];
 
-        // Update status di tabel penghapusan
+        // FIX: Tambahkan ::status_transaksi untuk casting tipe data
         const updateQuery = `
-            UPDATE penghapusan SET status = $1, catatan_penolakan = CASE WHEN $1 = 'Ditolak' THEN $2 ELSE catatan_penolakan END
+            UPDATE penghapusan 
+            SET status = $1::status_transaksi, 
+                catatan_penolakan = CASE WHEN $1::status_transaksi = 'Ditolak' THEN $2 ELSE catatan_penolakan END
             WHERE id = $3;
         `;
-        await client.query(updateQuery, [status_baru, catatan, id]);
+        await client.query(updateQuery, [status_baru, finalCatatan, id]);
         
-        // Soft delete: Jika disetujui Kepala Dinas, ubah status barang menjadi 'Tidak Aktif'
         if (status_baru === 'Disetujui Kepala Dinas') {
             await client.query("UPDATE barang SET status = 'Tidak Aktif' WHERE id = $1", [barang_id]);
         }
 
-        // Log validasi
+        // FIX: Lakukan casting tipe data di sini juga
         const logQuery = `
             INSERT INTO log_validasi (penghapusan_id, user_validator_id, status_sebelum, status_sesudah, catatan)
-            VALUES ($1, $2, $3, $4, $5);
+            VALUES ($1, $2, $3::status_transaksi, $4::status_transaksi, $5);
         `;
-        await client.query(logQuery, [id, user_validator_id, status_sebelum, status_baru, catatan]);
+        await client.query(logQuery, [id, user_validator_id, status_sebelum, status_baru, finalCatatan]);
 
         await client.query('COMMIT');
         res.json({ message: `Status penghapusan berhasil diubah.` });
@@ -91,7 +93,7 @@ const updateStatusPenghapusan = async (req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         if (error.message === 'NotFound') return res.status(404).json({ message: 'Usulan penghapusan tidak ditemukan.' });
-        console.error('Error saat update status penghapusan:', error);
+        console.error('DATABASE ERROR:', error);
         res.status(500).json({ message: 'Terjadi kesalahan pada server' });
     } finally {
         client.release();
