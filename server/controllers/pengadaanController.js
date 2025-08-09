@@ -96,9 +96,10 @@ const updateStatusPengadaan = async (req, res) => {
     const { id } = req.params;
     const { status_baru, catatan } = req.body;
     const user_validator_id = req.user.id;
+    const finalCatatan = catatan || null;
 
     const validStatuses = [
-        'Divalidasi Pengurus Barang', 'Divalidasi Penatausahaan', 
+        'Divalidasi Pengurus Barang', 'Divalidasi Penatausahaan',
         'Disetujui Kepala Dinas', 'Selesai', 'Ditolak'
     ];
     if (!validStatuses.includes(status_baru)) {
@@ -109,26 +110,27 @@ const updateStatusPengadaan = async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // 1. Get current status
         const currentData = await client.query('SELECT status FROM rencana_pengadaan WHERE id = $1', [id]);
         if (currentData.rows.length === 0) {
             throw new Error('NotFound');
         }
         const status_sebelum = currentData.rows[0].status;
 
-        // 2. Update the status in the main table
+        // FIX: Tambahkan ::status_transaksi untuk melakukan casting tipe data
         const updateQuery = `
-            UPDATE rencana_pengadaan SET status = $1, catatan_penolakan = CASE WHEN $1 = 'Ditolak' THEN $2 ELSE catatan_penolakan END 
-            WHERE id = $3 RETURNING *;
+            UPDATE rencana_pengadaan 
+            SET status = $1::status_transaksi, 
+                catatan_penolakan = CASE WHEN $1::status_transaksi = 'Ditolak' THEN $2 ELSE catatan_penolakan END 
+            WHERE id = $3;
         `;
-        await client.query(updateQuery, [status_baru, catatan, id]);
+        await client.query(updateQuery, [status_baru, finalCatatan, id]);
 
-        // 3. Log the validation
+        // FIX: Lakukan casting tipe data di sini juga
         const logQuery = `
             INSERT INTO log_validasi (rencana_pengadaan_id, user_validator_id, status_sebelum, status_sesudah, catatan)
-            VALUES ($1, $2, $3, $4, $5);
+            VALUES ($1, $2, $3::status_transaksi, $4::status_transaksi, $5);
         `;
-        await client.query(logQuery, [id, user_validator_id, status_sebelum, status_baru, catatan]);
+        await client.query(logQuery, [id, user_validator_id, status_sebelum, status_baru, finalCatatan]);
 
         await client.query('COMMIT');
         res.json({ message: `Status usulan berhasil diubah menjadi "${status_baru}"` });
@@ -138,10 +140,37 @@ const updateStatusPengadaan = async (req, res) => {
         if (error.message === 'NotFound') {
             return res.status(404).json({ message: 'Usulan tidak ditemukan.' });
         }
-        console.error('Error saat update status pengadaan:', error);
+        console.error('DATABASE ERROR:', error);
         res.status(500).json({ message: 'Terjadi kesalahan pada server' });
     } finally {
         client.release();
+    }
+};
+
+const getDetailForSurat = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const headerQuery = `
+            SELECT rp.*, u_pengusul.nama AS nama_pengusul, u_ppk.nama AS nama_ppk
+            FROM rencana_pengadaan rp
+            JOIN users u_pengusul ON rp.user_pengusul_id = u_pengusul.id
+            LEFT JOIN users u_ppk ON rp.ppk_id = u_ppk.id
+            WHERE rp.id = $1;
+        `;
+        const headerResult = await pool.query(headerQuery, [id]);
+        if (headerResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Data pengadaan tidak ditemukan.' });
+        }
+        const detailQuery = `SELECT * FROM rencana_pengadaan_detail WHERE rencana_id = $1 ORDER BY id ASC;`;
+        const detailResult = await pool.query(detailQuery, [id]);
+        const suratData = {
+            ...headerResult.rows[0],
+            details: detailResult.rows
+        };
+        res.json(suratData);
+    } catch (error) {
+        console.error('Error saat generate data surat:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
     }
 };
 
@@ -149,5 +178,6 @@ module.exports = {
     createPengadaan,
     getAllPengadaan,
     getPengadaanById,
-    updateStatusPengadaan
+    updateStatusPengadaan,
+    getDetailForSurat,
 };
