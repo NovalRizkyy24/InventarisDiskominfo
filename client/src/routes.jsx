@@ -7,12 +7,13 @@ import {
   DocumentPlusIcon,
   ClipboardDocumentListIcon,
   TrashIcon,
+  DocumentMagnifyingGlassIcon,
 } from "@heroicons/react/24/solid";
 
 // Impor Halaman Umum dan Autentikasi
 import { SignIn, SignUp } from "@/pages/auth";
 
-// Impor Semua Halaman Admin
+// Impor Semua Halaman Admin (termasuk DataBarang yang akan kita gunakan kembali)
 import { 
   Home as AdminHome, 
   DataPengguna, 
@@ -33,7 +34,7 @@ import {
 // Impor Halaman Peran Lainnya
 import { Home as PengurusBarangHome } from "@/pages/pengurus-barang";
 import { Home as PenataUsahaBarangHome } from "@/pages/penata-usaha-barang";
-import { Home as PpkHome, TambahPengadaan, TambahPeminjaman, TambahPenghapusan } from "@/pages/ppk";
+import { Home as PpkHome, TambahPengadaan, TambahPeminjaman, TambahPenghapusan, DataUsulanSaya } from "@/pages/ppk";
 import { Home as KabidHome } from "@/pages/kepala-bidang";
 import { Home as KadisHome } from "@/pages/kepala-dinas";
 
@@ -74,10 +75,11 @@ const routes = [
     role: "Pengurus Barang",
     pages: [
       { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <PengurusBarangHome /> },
+      { icon: <TableCellsIcon {...icon} />, name: "Data Barang", path: "/data-barang", element: <DataBarang /> }, // <-- DITAMBAHKAN
       { icon: <DocumentPlusIcon {...icon} />, name: "Validasi Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
       { icon: <ClipboardDocumentListIcon {...icon} />, name: "Validasi Peminjaman", path: "/data-peminjaman", element: <DataPeminjaman /> },
       { icon: <TrashIcon {...icon} />, name: "Validasi Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
-      // Rute detail untuk peran ini
+      // Rute detail
       { path: "/detail-pengadaan/:id", element: <DetailPengadaan /> },
       { path: "/detail-peminjaman/:id", element: <DetailPeminjaman /> },
       { path: "/detail-penghapusan/:id", element: <DetailPenghapusan /> },
@@ -89,6 +91,7 @@ const routes = [
     role: "Penata Usaha Barang",
     pages: [
       { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <PenataUsahaBarangHome /> },
+      { icon: <TableCellsIcon {...icon} />, name: "Data Barang", path: "/data-barang", element: <DataBarang /> }, // <-- DITAMBAHKAN
       { icon: <DocumentPlusIcon {...icon} />, name: "Validasi Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
       { icon: <TrashIcon {...icon} />, name: "Validasi Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
       { path: "/detail-pengadaan/:id", element: <DetailPengadaan /> },
@@ -101,9 +104,15 @@ const routes = [
     role: "PPK",
     pages: [
       { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <PpkHome /> },
+      { icon: <TableCellsIcon {...icon} />, name: "Data Barang", path: "/data-barang", element: <DataBarang /> }, // <-- DITAMBAHKAN
+      { icon: <DocumentMagnifyingGlassIcon {...icon} />, name: "Lacak Usulan Saya", path: "/usulan-saya", element: <DataUsulanSaya /> },
       { icon: <DocumentPlusIcon {...icon} />, name: "Buat Usulan Pengadaan", path: "/tambah-pengadaan", element: <TambahPengadaan /> },
       { icon: <ClipboardDocumentListIcon {...icon} />, name: "Ajukan Peminjaman", path: "/tambah-peminjaman", element: <TambahPeminjaman /> },
       { icon: <TrashIcon {...icon} />, name: "Ajukan Penghapusan", path: "/tambah-penghapusan", element: <TambahPenghapusan /> },
+      // Rute detail
+      { path: "/detail-pengadaan/:id", element: <DetailPengadaan /> },
+      { path: "/detail-peminjaman/:id", element: <DetailPeminjaman /> },
+      { path: "/detail-penghapusan/:id", element: <DetailPenghapusan /> },
     ],
   },
   // --- Rute untuk Kepala Bidang ---
@@ -112,6 +121,7 @@ const routes = [
     role: "Kepala Bidang",
     pages: [
       { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <KabidHome /> },
+      { icon: <TableCellsIcon {...icon} />, name: "Data Barang", path: "/data-barang", element: <DataBarang /> }, // <-- DITAMBAHKAN
     ],
   },
   // --- Rute untuk Kepala Dinas ---
@@ -120,6 +130,7 @@ const routes = [
     role: "Kepala Dinas",
     pages: [
       { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <KadisHome /> },
+      { icon: <TableCellsIcon {...icon} />, name: "Data Barang", path: "/data-barang", element: <DataBarang /> }, // <-- DITAMBAHKAN
       { icon: <DocumentPlusIcon {...icon} />, name: "Persetujuan Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
       { icon: <TrashIcon {...icon} />, name: "Persetujuan Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
       { path: "/detail-pengadaan/:id", element: <DetailPengadaan /> },

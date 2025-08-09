@@ -5,7 +5,8 @@ const {
     getAllPengadaan,
     getPengadaanById,
     updateStatusPengadaan,
-    getDetailForSurat
+    downloadSuratPengadaan,
+    getPengadaanByPengusul 
 } = require('../controllers/pengadaanController');
 const verifyToken = require('../middleware/verifyToken');
 
@@ -15,11 +16,12 @@ router.route('/pengadaan')
     .post(createPengadaan)
     .get(getAllPengadaan);
 
+router.get('/pengadaan/saya', getPengadaanByPengusul); 
+
 router.route('/pengadaan/:id')
     .get(getPengadaanById);
 
 router.put('/pengadaan/:id/status', updateStatusPengadaan);
-
-router.get('/pengadaan/:id/data-surat', getDetailForSurat);
+router.get('/pengadaan/:id/download-surat', downloadSuratPengadaan);
 
 module.exports = router;
