@@ -9,6 +9,7 @@ import {
   Chip,
 } from "@material-tailwind/react";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { useAuth } from "@/hooks/useAuth"; 
 
 // Fungsi untuk memformat tanggal
 const formatDate = (dateString) => {
@@ -33,6 +34,9 @@ const getStatusColor = (status) => {
 
 export function DataPengadaan() {
   const [usulan, setUsulan] = useState([]);
+  const { user } = useAuth(); 
+
+  const layout = user?.role.toLowerCase().replace(/ /g, '-');
 
   useEffect(() => {
     const fetchPengadaan = async () => {
@@ -59,7 +63,6 @@ export function DataPengadaan() {
             <Typography variant="h6" color="white">
               Data Rencana Pengadaan Barang
             </Typography>
-            {/* Tombol Tambah akan dibuat untuk peran tertentu nanti */}
             <Link to="/ppk/tambah-pengadaan">
               <Button color="white" className="flex items-center gap-2">
                 <PlusIcon className="h-5 w-5" />
@@ -79,25 +82,23 @@ export function DataPengadaan() {
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {usulan.map(({ id, nomor_usulan, tanggal_usulan, program, nama_pengusul, status }, key) => (
-                <tr key={id}>
-                  <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-semibold">{key + 1}</Typography></td>
-                  <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-semibold">{nomor_usulan}</Typography></td>
-                  <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal">{formatDate(tanggal_usulan)}</Typography></td>
-                  <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal max-w-xs truncate">{program}</Typography></td>
-                  <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal">{nama_pengusul}</Typography></td>
-                  <td className="py-3 px-5 border-b border-blue-gray-50">
-                    <Chip variant="gradient" color={getStatusColor(status)} value={status} className="py-0.5 px-2 text-[11px] font-medium" />
-                  </td>
-                  <td className="py-3 px-5 border-b border-blue-gray-50">
-                    <Link to={`/admin/detail-pengadaan/${id}`}>
-                       <Button variant="text" size="sm">Lihat Detail</Button>
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+            <tbody>{usulan.map(({ id, nomor_usulan, tanggal_usulan, program, nama_pengusul, status }, key) => (
+              <tr key={id}>
+                <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-semibold">{key + 1}</Typography></td>
+                <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-semibold">{nomor_usulan}</Typography></td>
+                <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal">{formatDate(tanggal_usulan)}</Typography></td>
+                <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal max-w-xs truncate">{program}</Typography></td>
+                <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal">{nama_pengusul}</Typography></td>
+                <td className="py-3 px-5 border-b border-blue-gray-50">
+                  <Chip variant="gradient" color={getStatusColor(status)} value={status} className="py-0.5 px-2 text-[11px] font-medium" />
+                </td>
+                <td className="py-3 px-5 border-b border-blue-gray-50">
+                  <Link to={`/${layout}/detail-pengadaan/${id}`}>
+                    <Button variant="text" size="sm">Lihat Detail</Button>
+                  </Link>
+                </td>
+              </tr>
+            ))}</tbody>
           </table>
         </CardBody>
       </Card>
