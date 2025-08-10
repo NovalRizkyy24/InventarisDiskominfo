@@ -7,13 +7,31 @@ const getAllBarang = async (req, res) => {
   const userRole = req.user.role; // Ambil role dari token JWT
 
   try {
-    let queryText = 'SELECT b.*, k.nama_kategori, l.nama_lokasi, u.nama as pemegang_barang FROM barang b LEFT JOIN kategori_barang k ON b.kategori_id = k.id LEFT JOIN lokasi l ON b.lokasi_id = l.id LEFT JOIN users u ON b.pemegang_barang_id = u.id';
+    // PERBAIKAN: Sebutkan semua kolom secara eksplisit untuk menghindari ambiguitas
+    let queryText = `
+      SELECT 
+        b.id, 
+        b.nama_barang, 
+        b.kode_barang, 
+        b.merk, 
+        b.tipe,
+        b.status,
+        k.nama_kategori, 
+        l.nama_lokasi, 
+        u.nama as pemegang_barang 
+      FROM barang b 
+      LEFT JOIN kategori_barang k ON b.kategori_id = k.id 
+      LEFT JOIN lokasi l ON b.lokasi_id = l.id 
+      LEFT JOIN users u ON b.pemegang_barang_id = u.id
+    `;
 
     // Logika bisnis: Hanya peran tertentu yang bisa melihat barang 'Tidak Aktif'
     const allowedRoles = ['Admin', 'Pengurus Barang', 'Penata Usaha Barang', 'Kepala Dinas'];
     if (!allowedRoles.includes(userRole)) {
+      // Tambahkan WHERE clause jika belum ada
       queryText += " WHERE b.status <> 'Tidak Aktif'";
     }
+    
     queryText += ' ORDER BY b.id ASC';
 
     const { rows } = await pool.query(queryText);
@@ -47,12 +65,21 @@ const getBarangById = async (req, res) => {
 const createBarang = async (req, res) => {
     const { 
         nama_barang, kode_barang, kategori_id, lokasi_id, merk, tipe, spesifikasi, 
-        tanggal_perolehan, nilai_perolehan, sumber_dana, status 
+        tanggal_perolehan, nilai_perolehan, sumber_dana
     } = req.body;
+    
+    // Ambil peran pengguna dari token yang sudah diverifikasi
+    const userRole = req.user.role;
 
     if (!nama_barang || !kode_barang || !tanggal_perolehan || !nilai_perolehan) {
         return res.status(400).json({ message: 'Field yang wajib diisi tidak boleh kosong.' });
     }
+
+    // Tentukan status awal berdasarkan peran pengguna
+    const initialStatus = userRole === 'Admin' ? 'Tersedia' : 'Menunggu Validasi';
+    const successMessage = userRole === 'Admin' 
+        ? 'Barang baru berhasil ditambahkan.' 
+        : 'Barang baru berhasil ditambahkan dan menunggu validasi.';
 
     try {
         const query = `
@@ -64,10 +91,12 @@ const createBarang = async (req, res) => {
         `;
         const values = [
             nama_barang, kode_barang, kategori_id, lokasi_id, merk, tipe, spesifikasi,
-            tanggal_perolehan, nilai_perolehan, sumber_dana, status || 'Tersedia'
+            tanggal_perolehan, nilai_perolehan, sumber_dana, initialStatus
         ];
+        
         const { rows } = await pool.query(query, values);
-        res.status(201).json({ message: 'Barang baru berhasil ditambahkan', barang: rows[0] });
+        res.status(201).json({ message: successMessage, barang: rows[0] });
+
     } catch (error) {
         console.error('Error saat membuat barang:', error);
         if (error.code === '23505') { // Unique violation
@@ -76,6 +105,7 @@ const createBarang = async (req, res) => {
         res.status(500).json({ message: 'Terjadi kesalahan pada server' });
     }
 };
+
 
 
 // @desc    Update a barang
@@ -133,10 +163,54 @@ const deleteBarang = async (req, res) => {
   }
 };
 
+const validateBarang = async (req, res) => {
+    const { id } = req.params;
+    const { disetujui, catatan } = req.body; // true jika disetujui, false jika ditolak
+    const user_validator_id = req.user.id;
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const currentBarang = await client.query('SELECT status FROM barang WHERE id = $1', [id]);
+        if (currentBarang.rows.length === 0) {
+            return res.status(404).json({ message: 'Barang tidak ditemukan' });
+        }
+        const status_sebelum = currentBarang.rows[0].status;
+
+        if (status_sebelum !== 'Menunggu Validasi') {
+            return res.status(400).json({ message: 'Barang ini tidak dalam status menunggu validasi.' });
+        }
+
+        const status_sesudah = disetujui ? 'Tersedia' : 'Ditolak'; // Jika ditolak, bisa dihapus atau diberi status lain
+
+        // Update status barang
+        await client.query("UPDATE barang SET status = $1 WHERE id = $2", [status_sesudah, id]);
+        
+        // Catat ke log validasi
+        const logQuery = `
+            INSERT INTO log_validasi (barang_id, user_validator_id, status_sebelum, status_sesudah, catatan)
+            VALUES ($1, $2, $3, $4, $5);
+        `;
+        await client.query(logQuery, [id, user_validator_id, status_sebelum, status_sesudah, catatan]);
+
+        await client.query('COMMIT');
+        res.json({ message: `Barang telah berhasil di-${disetujui ? 'validasi' : 'tolak'}.` });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error saat validasi barang:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    } finally {
+        client.release();
+    }
+};
+
 module.exports = {
   getAllBarang,
   getBarangById,
   createBarang,
   updateBarang,
   deleteBarang,
+  validateBarang
 };

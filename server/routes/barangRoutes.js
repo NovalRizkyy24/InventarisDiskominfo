@@ -5,7 +5,8 @@ const {
     getBarangById, 
     createBarang, 
     updateBarang, 
-    deleteBarang 
+    deleteBarang,
+    validateBarang 
 } = require('../controllers/barangController');
 const verifyToken = require('../middleware/verifyToken');
 
@@ -15,6 +16,8 @@ router.use(verifyToken);
 router.route('/barang')
     .get(getAllBarang)
     .post(createBarang);
+
+router.put('/barang/:id/validate', validateBarang);
 
 router.route('/barang/:id')
     .get(getBarangById)

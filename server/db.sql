@@ -8,6 +8,7 @@ CREATE TYPE "user_role" AS ENUM (
 );
 
 CREATE TYPE "status_barang" AS ENUM (
+  'Menunggu Validasi',  --new
   'Tersedia',
   'Dipinjam',
   'Dalam Perbaikan',

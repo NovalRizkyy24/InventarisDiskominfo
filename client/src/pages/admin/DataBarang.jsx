@@ -8,6 +8,7 @@ import {
   IconButton,
   Tooltip,
   Button,
+  Chip,
 } from "@material-tailwind/react";
 import {
   TrashIcon,
@@ -17,22 +18,44 @@ import {
 import { ConfirmationModal } from "@/widgets/layout";
 import { useAuth } from "@/hooks/useAuth";
 
+// Fungsi helper untuk menentukan warna status
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'Menunggu Validasi': return 'orange';
+    case 'Tersedia': return 'green';
+    case 'Dipinjam': return 'blue';
+    case 'Dalam Perbaikan': return 'amber';
+    case 'Rusak Berat': return 'red';
+    case 'Tidak Aktif': return 'blue-gray';
+    case 'Ditolak': return 'red';
+    default: return 'gray';
+  }
+};
+
 export function DataBarang() {
   const [barang, setBarang] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const { user } = useAuth(); // Dapatkan info pengguna
+  const { user } = useAuth();
 
   const API_URL = "/api/barang";
 
   const fetchBarang = async () => {
+    if (!user) return; // Jangan fetch jika user belum ter-load
     const token = localStorage.getItem("authToken");
     try {
       const response = await fetch(API_URL, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Gagal mengambil data barang");
-      const data = await response.json();
+      let data = await response.json();
+
+      // Aturan 1: Filter data barang berdasarkan peran pengguna
+      const rolesAllowedToSeeValidation = ['Admin', 'Pengurus Barang', 'Penata Usaha Barang'];
+      if (!rolesAllowedToSeeValidation.includes(user.role)) {
+        data = data.filter(item => item.status !== 'Menunggu Validasi');
+      }
+      
       setBarang(data);
     } catch (error) {
       console.error(error);
@@ -41,7 +64,7 @@ export function DataBarang() {
 
   useEffect(() => {
     fetchBarang();
-  }, []);
+  }, [user]); // Jalankan ulang fetchBarang jika objek user berubah
 
   const confirmDelete = async () => {
     if (!itemToDelete) return;
@@ -54,7 +77,7 @@ export function DataBarang() {
       if (!response.ok) throw new Error("Gagal menghapus barang");
       setIsModalOpen(false);
       setItemToDelete(null);
-      fetchBarang();
+      await fetchBarang(); // Muat ulang data setelah hapus
     } catch (error) {
       console.error(error);
       setIsModalOpen(false);
@@ -66,10 +89,13 @@ export function DataBarang() {
     setIsModalOpen(true);
   };
 
-  // Tentukan header tabel berdasarkan peran
-  const tableHeaders = user && user.role === 'Admin' 
-    ? ["No", "Nama Barang", "Kode", "Kategori", "Status", "Aksi"]
-    : ["No", "Nama Barang", "Kode", "Kategori", "Status"];
+  // Logika hak akses berdasarkan peran
+  const canAdd = user && (user.role === 'Admin' || user.role === 'Pengurus Barang');
+  const canEditOrDelete = user && user.role === 'Admin';
+  const canValidate = user && user.role === 'Penata Usaha Barang';
+  const layout = user?.role.toLowerCase().replace(/ /g, '-');
+
+  const tableHeaders = ["No", "Nama Barang", "Kode", "Kategori", "Status", "Aksi"];
 
   return (
     <>
@@ -80,9 +106,8 @@ export function DataBarang() {
               <Typography variant="h6" color="white">
                 Tabel Data Barang
               </Typography>
-              {/* Tampilkan tombol HANYA untuk Admin */}
-              {user && user.role === 'Admin' && (
-                <Link to="/admin/tambah-barang">
+              {canAdd && (
+                <Link to={`/${layout}/tambah-barang`}>
                   <Button color="white" className="flex items-center gap-2">
                     <PlusIcon className="h-5 w-5" />
                     Tambah Barang
@@ -103,33 +128,45 @@ export function DataBarang() {
                 </tr>
               </thead>
               <tbody>
-                {barang.map(({ id, nama_barang, kode_barang, nama_kategori, status }, key) => {
-                  const className = "py-3 px-5 border-b border-blue-gray-50";
-                  return (
-                    <tr key={id}>
-                      <td className={className}><Typography className="text-xs font-semibold">{key + 1}</Typography></td>
-                      <td className={className}><Typography className="text-xs font-semibold">{nama_barang}</Typography></td>
-                      <td className={className}><Typography className="text-xs font-normal">{kode_barang}</Typography></td>
-                      <td className={className}><Typography className="text-xs font-normal">{nama_kategori || '-'}</Typography></td>
-                      <td className={className}><Typography className="text-xs font-normal">{status}</Typography></td>
-                      {/* Tampilkan kolom Aksi HANYA untuk Admin */}
-                      {user && user.role === 'Admin' && (
-                        <td className={className}>
-                          <div className="flex gap-2">
-                            <Tooltip content="Edit Barang">
-                              <Link to={`/admin/edit-barang/${id}`}>
-                                <IconButton variant="text"><PencilIcon className="h-4 w-4" /></IconButton>
-                              </Link>
-                            </Tooltip>
-                            <Tooltip content="Hapus Barang">
-                              <IconButton variant="text" color="red" onClick={() => openDeleteModal(id)}><TrashIcon className="h-4 w-4" /></IconButton>
-                            </Tooltip>
-                          </div>
-                        </td>
-                      )}
+                {barang.map((item, key) => (
+                    <tr key={item.id}>
+                      <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-semibold">{key + 1}</Typography></td>
+                      <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-semibold">{item.nama_barang}</Typography></td>
+                      <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal">{item.kode_barang}</Typography></td>
+                      <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal">{item.nama_kategori || '-'}</Typography></td>
+                      <td className="py-3 px-5 border-b border-blue-gray-50">
+                        <Chip
+                          variant="gradient"
+                          color={getStatusColor(item.status)}
+                          value={item.status}
+                          className="py-0.5 px-2 text-[11px] font-medium w-fit"
+                        />
+                      </td>
+                      <td className="py-3 px-5 border-b border-blue-gray-50">
+                        <div className="flex gap-2">
+                          {canValidate && item.status === 'Menunggu Validasi' && (
+                            <Link to={`/penata-usaha-barang/validasi-barang/${item.id}`}>
+                              <Button variant="text" size="sm">Validasi</Button>
+                            </Link>
+                          )}
+                          
+                          {canEditOrDelete && (
+                            <>
+                              <Tooltip content="Edit Barang">
+                                <Link to={`/admin/edit-barang/${item.id}`}>
+                                  <IconButton variant="text"><PencilIcon className="h-4 w-4" /></IconButton>
+                                </Link>
+                              </Tooltip>
+                              <Tooltip content="Hapus Barang">
+                                <IconButton variant="text" color="red" onClick={() => openDeleteModal(item.id)}><TrashIcon className="h-4 w-4" /></IconButton>
+                              </Tooltip>
+                            </>
+                          )}
+                        </div>
+                      </td>
                     </tr>
-                  );
-                })}
+                  )
+                )}
               </tbody>
             </table>
           </CardBody>
