@@ -53,7 +53,7 @@ const loginUser = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    const allUsers = await pool.query('SELECT id, nama, username, role FROM users ORDER BY id ASC');
+    const allUsers = await pool.query('SELECT id, nama, username, role, jabatan, nip FROM users ORDER BY id ASC');
     res.json(allUsers.rows);
   } catch (error) {
     console.error('Error saat mengambil data pengguna:', error);
@@ -78,7 +78,8 @@ const deleteUser = async (req, res) => {
 const getUserById = async (req, res) => {
   const { id } = req.params;
   try {
-    const userQuery = await pool.query('SELECT id, nama, username, role FROM users WHERE id = $1', [id]);
+    const userQuery = await pool.query('SELECT id, nama, username, role, jabatan, nip FROM users WHERE id = $1', [id]);
+    // const userQuery = await pool.query('SELECT id, nama, username, role FROM users WHERE id = $1', [id]);
     if (userQuery.rows.length === 0) {
       return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
     }
@@ -91,15 +92,16 @@ const getUserById = async (req, res) => {
 
 const updateUser = async (req, res) => {
   const { id } = req.params;
-  const { nama, username, role, password } = req.body;
+  const { nama, username, role, password, jabatan, nip } = req.body;
+  // const { nama, username, role, password } = req.body;
 
   if (!nama || !username || !role) {
     return res.status(400).json({ message: 'Nama, username, dan peran harus diisi' });
   }
 
   try {
-    const queryParams = [nama, username, role];
-    let querySetters = 'nama = $1, username = $2, role = $3';
+    const queryParams = [nama, username, role, jabatan, nip];
+    let querySetters = 'nama = $1, username = $2, role = $3, jabatan = $4, nip = $5';
     
     // Jika ada password baru, hash dan tambahkan ke query
     if (password) {
@@ -109,7 +111,7 @@ const updateUser = async (req, res) => {
     }
     
     queryParams.push(id);
-    const queryString = `UPDATE users SET ${querySetters} WHERE id = $${queryParams.length} RETURNING id, nama, username, role`;
+    const queryString = `UPDATE users SET ${querySetters} WHERE id = $${queryParams.length} RETURNING id, nama, username, role, jabatan, nip`;
 
     const updateQuery = await pool.query(queryString, queryParams);
 
@@ -128,7 +130,8 @@ const updateUser = async (req, res) => {
 };
 
 const createUser = async (req, res) => {
-  const { nama, username, password, role } = req.body;
+  // const { nama, username, password, role } = req.body;
+  const { nama, username, password, role, jabatan, nip } = req.body;
 
   if (!nama || !username || !password || !role) {
     return res.status(400).json({ message: 'Semua field harus diisi' });
@@ -137,8 +140,8 @@ const createUser = async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUserQuery = await pool.query(
-      'INSERT INTO users (nama, username, password, role) VALUES ($1, $2, $3, $4) RETURNING id, nama, username, role',
-      [nama, username, hashedPassword, role]
+      'INSERT INTO users (nama, username, password, role, jabatan, nip) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, nama, username, role, jabatan, nip',
+      [nama, username, hashedPassword, role, jabatan, nip] 
     );
 
     res.status(201).json({ message: 'Pengguna baru berhasil dibuat', user: newUserQuery.rows[0] });
@@ -157,5 +160,5 @@ module.exports = {
   deleteUser,
   getUserById,
   updateUser,
-  createUser, // <-- Tambahkan ini
+  createUser, 
 };

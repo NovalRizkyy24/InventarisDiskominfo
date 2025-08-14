@@ -7,36 +7,48 @@ const users = [
     username: 'admin',
     password: 'admin123',
     nama: 'Admin Sistem',
+    jabatan: 'Administrator',
+    nip: '199001012015011001',
     role: 'Admin',
   },
   {
     username: 'pengurus',
     password: 'pengurus123',
-    nama: 'Pengurus Barang',
+    nama: 'Pengurus Barang Utama',
+    jabatan: 'Staf Pengelola Aset',
+    nip: '199203152016021003',
     role: 'Pengurus Barang',
   },
   {
     username: 'penatausaha',
     password: 'penata123',
     nama: 'Penata Usaha Barang',
+    jabatan: 'Kasubbag Umum & Kepegawaian',
+    nip: '198805202014082001',
     role: 'Penata Usaha Barang',
   },
   {
     username: 'ppk',
     password: 'ppk123',
-    nama: 'PPK',
+    nama: 'Pejabat Pembuat Komitmen',
+    jabatan: 'PPK Bidang TIK',
+    nip: '199111102015051002',
     role: 'PPK',
   },
   {
     username: 'kepalabidang',
     password: 'bidang123',
-    nama: 'Kepala Bidang',
+    nama: 'Kepala Bidang Infrastruktur',
+    jabatan: 'Kepala Bidang',
+    nip: '198507252010011005',
     role: 'Kepala Bidang',
   },
   {
     username: 'kepaladinas',
     password: 'dinas123',
     nama: 'Kepala Dinas',
+    jabatan: 'Kepala Dinas Kominfo',
+    nip: '198012012005011007',
     role: 'Kepala Dinas',
   },
 ];
@@ -46,8 +58,8 @@ async function seedUsers() {
     for (const user of users) {
       const hashedPassword = await bcrypt.hash(user.password, 10);
       await pool.query(
-        'INSERT INTO users (username, password, nama, role) VALUES ($1, $2, $3, $4) ON CONFLICT (username) DO NOTHING',
-        [user.username, hashedPassword, user.nama, user.role]
+        'INSERT INTO users (username, password, nama, role, jabatan, nip) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (username) DO NOTHING',
+        [user.username, hashedPassword, user.nama, user.role, user.jabatan, user.nip]
       );
     }
     console.log('✅ Seeding selesai!');

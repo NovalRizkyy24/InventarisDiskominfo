@@ -19,7 +19,9 @@ export function EditPengguna() {
     nama: "",
     username: "",
     role: "",
-    password: "", // <-- Tambahkan state untuk password
+    jabatan: "", 
+    nip: "",
+    password: "", 
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -75,6 +77,8 @@ export function EditPengguna() {
       nama: userData.nama,
       username: userData.username,
       role: userData.role,
+      jabatan: userData.jabatan,
+      nip: userData.nip,
     };
     
     // Hanya tambahkan password jika diisi
@@ -135,6 +139,12 @@ export function EditPengguna() {
               value={userData.username}
               onChange={handleChange}
               required
+            />
+            <Input
+              label="Jabatan" name="jabatan" value={userData.jabatan || ''} onChange={handleChange}
+            />
+            <Input
+              label="NIP" name="nip" value={userData.nip || ''} onChange={handleChange}
             />
             {/* Tambahkan input password baru */}
             <Input

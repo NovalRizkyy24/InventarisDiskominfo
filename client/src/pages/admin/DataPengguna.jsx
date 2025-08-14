@@ -98,7 +98,7 @@ export function DataPengguna() {
             <table className="w-full min-w-[640px] table-auto">
               <thead>
                 <tr>
-                  {["No", "Nama", "Username", "Peran", "Aksi"].map((el) => (
+                  {["No", "Nama", "Username", "Jabatan", "NIP", "Peran", "Aksi"].map((el) => (
                     <th
                       key={el}
                       className="border-b border-blue-gray-50 py-3 px-5 text-left"
@@ -114,7 +114,7 @@ export function DataPengguna() {
                 </tr>
               </thead>
               <tbody>
-                {users.map(({ id, nama, username, role }, key) => {
+                {users.map(({ id, nama, username, role, jabatan, nip }, key) => {
                   const className = `py-3 px-5 ${
                     key === users.length - 1
                       ? ""
@@ -138,6 +138,18 @@ export function DataPengguna() {
                           {username}
                         </Typography>
                       </td>
+                      {/* === PERBAIKAN DI SINI === */}
+                      <td className={className}>
+                        <Typography className="text-xs font-normal text-blue-gray-500">
+                          {jabatan || '-'}
+                        </Typography>
+                      </td>
+                      <td className={className}>
+                        <Typography className="text-xs font-normal text-blue-gray-500">
+                          {nip || '-'}
+                        </Typography>
+                      </td>
+                      {/* === AKHIR PERBAIKAN === */}
                       <td className={className}>
                         <Typography className="text-xs font-normal text-blue-gray-500">
                           {role}

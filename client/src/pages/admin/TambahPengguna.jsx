@@ -19,6 +19,8 @@ export function TambahPengguna() {
     username: "",
     password: "",
     role: "",
+    jabatan: "",
+    nip: "",
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -82,6 +84,8 @@ export function TambahPengguna() {
             
             <Input label="Nama Lengkap" name="nama" onChange={handleChange} required />
             <Input label="Username" name="username" onChange={handleChange} required />
+            <Input type="password" label="Password" name="password" onChange={handleChange} required />
+            <Input label="NIP" name="nip" onChange={handleChange} />
             <Input type="password" label="Password" name="password" onChange={handleChange} required />
             
             <Select label="Peran" name="role" onChange={handleRoleChange} required>
