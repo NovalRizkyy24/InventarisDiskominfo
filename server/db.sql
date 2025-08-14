@@ -30,6 +30,8 @@ CREATE TABLE "users" (
   "username" varchar(50) UNIQUE NOT NULL,
   "password" text NOT NULL,
   "nama" varchar(100) NOT NULL,
+  "nip" varchar(18), 
+  "jabatan" varchar(100), 
   "role" user_role NOT NULL,
   "created_at" timestamptz DEFAULT (now())
 );
