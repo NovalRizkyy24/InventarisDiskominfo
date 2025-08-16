@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -14,9 +14,11 @@ import {
 
 export function TambahBarang() {
   const navigate = useNavigate();
+  const [kategoriList, setKategoriList] = useState([]);
   const [formData, setFormData] = useState({
     nama_barang: "",
     kode_barang: "",
+    kategori_id: "",
     merk: "",
     tipe: "",
     tanggal_perolehan: "",
@@ -26,9 +28,28 @@ export function TambahBarang() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  useEffect(() => {
+    const fetchKategori = async () => {
+      const token = localStorage.getItem("authToken");
+      try {
+        const response = await fetch('/api/kategori', { headers: { Authorization: `Bearer ${token}` } });
+        if (!response.ok) throw new Error("Gagal memuat daftar kategori");
+        const data = await response.json();
+        setKategoriList(data);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+    fetchKategori();
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleKategoriChange = (value) => {
+    setFormData((prev) => ({ ...prev, kategori_id: value }));
   };
   
   const handleStatusChange = (value) => {
@@ -77,6 +98,13 @@ export function TambahBarang() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input label="Nama Barang*" name="nama_barang" onChange={handleChange} required />
               <Input label="Kode Barang*" name="kode_barang" onChange={handleChange} required />
+              <Select label="Kategori" name="kategori_id" onChange={handleKategoriChange}>
+                {kategoriList.map((kat) => (
+                  <Option key={kat.id} value={String(kat.id)}>
+                    {kat.nama_kategori}
+                  </Option>
+                ))}
+              </Select>
               <Input label="Merk" name="merk" onChange={handleChange} />
               <Input label="Tipe" name="tipe" onChange={handleChange} />
               <Input type="date" label="Tanggal Perolehan*" name="tanggal_perolehan" onChange={handleChange} required />

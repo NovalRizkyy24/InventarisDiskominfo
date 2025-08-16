@@ -12,7 +12,6 @@ import {
   Option,
 } from "@material-tailwind/react";
 
-// Fungsi untuk memformat tanggal ke YYYY-MM-DD
 const formatDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -22,9 +21,11 @@ const formatDate = (dateString) => {
 export function EditBarang() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [kategoriList, setKategoriList] = useState([]);
   const [formData, setFormData] = useState({
     nama_barang: "",
     kode_barang: "",
+    kategori_id: "",
     merk: "",
     tipe: "",
     tanggal_perolehan: "",
@@ -36,24 +37,44 @@ export function EditBarang() {
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-    const fetchBarangData = async () => {
+    
+    const fetchKategori = async () => {
       try {
-        const response = await fetch(`/api/barang/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error("Gagal mengambil data barang");
+        const response = await fetch('/api/kategori', { headers: { Authorization: `Bearer ${token}` } });
+        if (!response.ok) throw new Error("Gagal memuat daftar kategori");
         const data = await response.json();
-        setFormData({ ...data, tanggal_perolehan: formatDate(data.tanggal_perolehan) });
+        setKategoriList(data);
       } catch (err) {
         setError(err.message);
       }
     };
+
+    const fetchBarangData = async () => {
+      try {
+        const response = await fetch(`/api/barang/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!response.ok) throw new Error("Gagal mengambil data barang");
+        const data = await response.json();
+        setFormData({ 
+          ...data, 
+          tanggal_perolehan: formatDate(data.tanggal_perolehan),
+          kategori_id: data.kategori_id ? String(data.kategori_id) : "" // Pastikan kategori_id adalah string
+        });
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+    
+    fetchKategori();
     fetchBarangData();
   }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleKategoriChange = (value) => {
+    setFormData((prev) => ({ ...prev, kategori_id: value }));
   };
 
   const handleStatusChange = (value) => {
@@ -95,6 +116,13 @@ export function EditBarang() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input label="Nama Barang*" name="nama_barang" value={formData.nama_barang || ''} onChange={handleChange} required />
               <Input label="Kode Barang*" name="kode_barang" value={formData.kode_barang || ''} onChange={handleChange} required />
+              <Select label="Kategori" name="kategori_id" value={formData.kategori_id} onChange={handleKategoriChange}>
+                {kategoriList.map((kat) => (
+                  <Option key={kat.id} value={String(kat.id)}>
+                    {kat.nama_kategori}
+                  </Option>
+                ))}
+              </Select>
               <Input label="Merk" name="merk" value={formData.merk || ''} onChange={handleChange} />
               <Input label="Tipe" name="tipe" value={formData.tipe || ''} onChange={handleChange} />
               <Input type="date" label="Tanggal Perolehan*" name="tanggal_perolehan" value={formData.tanggal_perolehan} onChange={handleChange} required />

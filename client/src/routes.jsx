@@ -29,7 +29,10 @@ import {
   DataPeminjaman,
   DetailPeminjaman,
   DataPenghapusan,
-  DetailPenghapusan
+  DetailPenghapusan,
+  DataKategori,     
+  TambahKategori,  
+  EditKategori, 
 } from "@/pages/admin";
 
 // Impor Halaman Peran Lainnya
@@ -55,6 +58,7 @@ const routes = [
         subRoutes: [
           { icon: <UserCircleIcon {...icon} />, name: "Data Pengguna", path: "/data-pengguna", element: <DataPengguna /> },
           { icon: <TableCellsIcon {...icon} />, name: "Data Barang", path: "/data-barang", element: <DataBarang /> },
+          { icon: <RectangleStackIcon {...icon} />, name: "Data Kategori", path: "/data-kategori", element: <DataKategori /> },
         ],
       },
       { icon: <DocumentPlusIcon {...icon} />, name: "Rencana Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
@@ -69,6 +73,8 @@ const routes = [
       { path: "/detail-pengadaan/:id", element: <DetailPengadaan /> },
       { path: "/detail-peminjaman/:id", element: <DetailPeminjaman /> },
       { path: "/detail-penghapusan/:id", element: <DetailPenghapusan /> },
+      { path: "/tambah-kategori", element: <TambahKategori /> }, 
+      { path: "/edit-kategori/:id", element: <EditKategori /> },
     ],
   },
   // --- Rute untuk Pengurus Barang ---

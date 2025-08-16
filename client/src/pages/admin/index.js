@@ -13,3 +13,6 @@ export * from "./DataPeminjaman";
 export * from "./DetailPeminjaman";
 export * from "./DataPenghapusan";
 export * from "./DetailPenghapusan";
+export * from "./DataKategori";
+export * from "./TambahKategori";
+export * from "./EditKategori"; 
