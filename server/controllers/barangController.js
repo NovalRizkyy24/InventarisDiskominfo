@@ -48,7 +48,23 @@ const getAllBarang = async (req, res) => {
 const getBarangById = async (req, res) => {
   const { id } = req.params;
   try {
-    const { rows } = await pool.query('SELECT * FROM barang WHERE id = $1', [id]);
+    // === PERBAIKI QUERY DI BAWAH INI ===
+    const query = `
+      SELECT 
+        b.*, 
+        k.nama_kategori, 
+        l.nama_lokasi, l.provinsi, l.kab_kota, l.kecamatan, l.kelurahan_desa, l.deskripsi,
+        u.nama as pemegang_barang 
+      FROM barang b 
+      LEFT JOIN kategori_barang k ON b.kategori_id = k.id 
+      LEFT JOIN lokasi l ON b.lokasi_id = l.id 
+      LEFT JOIN users u ON b.pemegang_barang_id = u.id
+      WHERE b.id = $1
+    `;
+    // === AKHIR PERBAIKAN QUERY ===
+
+    const { rows } = await pool.query(query, [id]);
+    
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Barang tidak ditemukan' });
     }
@@ -58,6 +74,7 @@ const getBarangById = async (req, res) => {
     res.status(500).json({ message: 'Terjadi kesalahan pada server' });
   }
 };
+
 
 // @desc    Create a new barang
 // @route   POST /api/barang

@@ -32,7 +32,9 @@ import {
   DetailPenghapusan,
   DataKategori,     
   TambahKategori,  
-  EditKategori, 
+  EditKategori,
+  DetailBarang,
+  AturLokasi, 
 } from "@/pages/admin";
 
 // Impor Halaman Peran Lainnya
@@ -75,6 +77,8 @@ const routes = [
       { path: "/detail-penghapusan/:id", element: <DetailPenghapusan /> },
       { path: "/tambah-kategori", element: <TambahKategori /> }, 
       { path: "/edit-kategori/:id", element: <EditKategori /> },
+      { path: "/detail-barang/:id", element: <DetailBarang /> },
+      { path: "/atur-lokasi/:id", element: <AturLokasi /> },
     ],
   },
   // --- Rute untuk Pengurus Barang ---
@@ -97,6 +101,8 @@ const routes = [
       { path: "/detail-pengadaan/:id", element: <DetailPengadaan /> },
       { path: "/detail-peminjaman/:id", element: <DetailPeminjaman /> },
       { path: "/detail-penghapusan/:id", element: <DetailPenghapusan /> },
+      { path: "/atur-lokasi/:id", element: <AturLokasi /> },
+      { path: "/detail-barang/:id", element: <DetailBarang /> },
     ],
   },
   // --- Rute untuk Penata Usaha Barang ---

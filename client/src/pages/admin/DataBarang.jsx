@@ -17,6 +17,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { ConfirmationModal } from "@/widgets/layout";
 import { useAuth } from "@/hooks/useAuth";
+import { EyeIcon, MapPinIcon } from "@heroicons/react/24/solid"; 
 
 // Fungsi helper untuk menentukan warna status
 const getStatusColor = (status) => {
@@ -92,6 +93,7 @@ export function DataBarang() {
   // Logika hak akses berdasarkan peran
   const canAdd = user && (user.role === 'Admin' || user.role === 'Pengurus Barang');
   const canEditOrDelete = user && user.role === 'Admin';
+  const canManageLocation = user && (user.role === 'Admin' || user.role === 'Pengurus Barang');
   const canValidate = user && user.role === 'Penata Usaha Barang';
   const layout = user?.role.toLowerCase().replace(/ /g, '-');
 
@@ -143,7 +145,29 @@ export function DataBarang() {
                         />
                       </td>
                       <td className="py-3 px-5 border-b border-blue-gray-50">
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
+                          <Tooltip content="Lihat Detail">
+                            <Link to={`/admin/detail-barang/${item.id}`}><IconButton variant="text"><EyeIcon className="h-4 w-4 text-blue-gray-500" /></IconButton></Link>
+                          </Tooltip>
+                          
+                          {/* === TOMBOL ATUR LOKASI BARU === */}
+                          {canEditOrDelete && (
+                            <Tooltip content="Atur Lokasi">
+                              <Link to={`/admin/atur-lokasi/${item.id}`}>
+                                <IconButton variant="text"><MapPinIcon className="h-4 w-4 text-green-500" /></IconButton>
+                              </Link>
+                            </Tooltip>
+                          )}
+
+                          {canManageLocation && (
+                            <Tooltip content="Atur Lokasi">
+                              {/* Ganti link agar dinamis sesuai layout peran */}
+                              <Link to={`/${layout}/atur-lokasi/${item.id}`}>
+                                <IconButton variant="text"><MapPinIcon className="h-4 w-4 text-green-500" /></IconButton>
+                              </Link>
+                            </Tooltip>
+                          )}
+
                           {canValidate && item.status === 'Menunggu Validasi' && (
                             <Link to={`/penata-usaha-barang/validasi-barang/${item.id}`}>
                               <Button variant="text" size="sm">Validasi</Button>
@@ -153,7 +177,8 @@ export function DataBarang() {
                           {canEditOrDelete && (
                             <>
                               <Tooltip content="Edit Barang">
-                                <Link to={`/admin/edit-barang/${item.id}`}>
+                                {/* Ganti link agar dinamis sesuai layout peran */}
+                                <Link to={`/${layout}/edit-barang/${item.id}`}>
                                   <IconButton variant="text"><PencilIcon className="h-4 w-4" /></IconButton>
                                 </Link>
                               </Tooltip>
