@@ -151,13 +151,13 @@ export function DataBarang() {
                           </Tooltip>
                           
                           {/* === TOMBOL ATUR LOKASI BARU === */}
-                          {canEditOrDelete && (
+                          {/* {canEditOrDelete && (
                             <Tooltip content="Atur Lokasi">
                               <Link to={`/admin/atur-lokasi/${item.id}`}>
                                 <IconButton variant="text"><MapPinIcon className="h-4 w-4 text-green-500" /></IconButton>
                               </Link>
                             </Tooltip>
-                          )}
+                          )} */}
 
                           {canManageLocation && (
                             <Tooltip content="Atur Lokasi">

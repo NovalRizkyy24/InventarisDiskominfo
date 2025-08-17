@@ -6,7 +6,8 @@ const {
     createBarang, 
     updateBarang, 
     deleteBarang,
-    validateBarang 
+    validateBarang,
+    regenerateQrCode  
 } = require('../controllers/barangController');
 const verifyToken = require('../middleware/verifyToken');
 
@@ -23,5 +24,7 @@ router.route('/barang/:id')
     .get(getBarangById)
     .put(updateBarang)
     .delete(deleteBarang);
+
+router.put('/barang/:id/regenerate-qr', regenerateQrCode);
 
 module.exports = router;

@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const qrcode = require('qrcode');
 
 // @desc    Get all barang with role-based visibility
 // @route   GET /api/barang
@@ -48,7 +49,6 @@ const getAllBarang = async (req, res) => {
 const getBarangById = async (req, res) => {
   const { id } = req.params;
   try {
-    // === PERBAIKI QUERY DI BAWAH INI ===
     const query = `
       SELECT 
         b.*, 
@@ -85,14 +85,12 @@ const createBarang = async (req, res) => {
         tanggal_perolehan, nilai_perolehan, sumber_dana
     } = req.body;
     
-    // Ambil peran pengguna dari token yang sudah diverifikasi
     const userRole = req.user.role;
 
     if (!nama_barang || !kode_barang || !tanggal_perolehan || !nilai_perolehan) {
         return res.status(400).json({ message: 'Field yang wajib diisi tidak boleh kosong.' });
     }
 
-    // Tentukan status awal berdasarkan peran pengguna
     const initialStatus = userRole === 'Admin' ? 'Tersedia' : 'Menunggu Validasi';
     const successMessage = userRole === 'Admin' 
         ? 'Barang baru berhasil ditambahkan.' 
@@ -182,7 +180,7 @@ const deleteBarang = async (req, res) => {
 
 const validateBarang = async (req, res) => {
     const { id } = req.params;
-    const { disetujui, catatan } = req.body; // true jika disetujui, false jika ditolak
+    const { disetujui, catatan } = req.body; 
     const user_validator_id = req.user.id;
 
     const client = await pool.connect();
@@ -199,12 +197,10 @@ const validateBarang = async (req, res) => {
             return res.status(400).json({ message: 'Barang ini tidak dalam status menunggu validasi.' });
         }
 
-        const status_sesudah = disetujui ? 'Tersedia' : 'Ditolak'; // Jika ditolak, bisa dihapus atau diberi status lain
+        const status_sesudah = disetujui ? 'Tersedia' : 'Ditolak'; 
 
-        // Update status barang
         await client.query("UPDATE barang SET status = $1 WHERE id = $2", [status_sesudah, id]);
         
-        // Catat ke log validasi
         const logQuery = `
             INSERT INTO log_validasi (barang_id, user_validator_id, status_sebelum, status_sesudah, catatan)
             VALUES ($1, $2, $3, $4, $5);
@@ -223,11 +219,39 @@ const validateBarang = async (req, res) => {
     }
 };
 
+const regenerateQrCode = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const barangUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/detail-barang/${id}`;
+
+        const qrCodeDataUrl = await qrcode.toDataURL(barangUrl);
+
+        const { rows, rowCount } = await pool.query(
+            'UPDATE barang SET qr_code_url = $1 WHERE id = $2 RETURNING qr_code_url',
+            [qrCodeDataUrl, id]
+        );
+
+        if (rowCount === 0) {
+            return res.status(404).json({ message: 'Barang tidak ditemukan' });
+        }
+
+        res.json({ 
+            message: 'QR Code berhasil dibuat ulang.',
+            qr_code_url: rows[0].qr_code_url 
+        });
+
+    } catch (error) {
+        console.error('Error saat membuat ulang QR code:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    }
+};
+
 module.exports = {
   getAllBarang,
   getBarangById,
   createBarang,
   updateBarang,
   deleteBarang,
-  validateBarang
+  validateBarang,
+  regenerateQrCode,
 };
