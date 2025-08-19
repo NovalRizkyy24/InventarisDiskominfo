@@ -309,6 +309,55 @@ const getPengadaanLogs = async (req, res) => {
     }
 };
 
+//@desc    Delete a pengadaan request by its creator
+//route   DELETE /api/pengadaan/:id
+//access  Private (Hanya pengusul)
+
+const deletePengadaan = async (req, res) => {
+    const { id: pengadaanId } = req.params;
+    const { id: userId, role } = req.user; // Ambil ID pengguna dari token
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // 1. Ambil data usulan untuk verifikasi
+        const usulanQuery = await client.query(
+            'SELECT user_pengusul_id, status FROM rencana_pengadaan WHERE id = $1',
+            [pengadaanId]
+        );
+
+        if (usulanQuery.rows.length === 0) {
+            return res.status(404).json({ message: 'Usulan tidak ditemukan.' });
+        }
+
+        const usulan = usulanQuery.rows[0];
+
+        // 2. Verifikasi: Hanya pemilik usulan yang bisa menghapus
+        if (usulan.user_pengusul_id !== userId) {
+            return res.status(403).json({ message: 'Anda tidak memiliki izin untuk menghapus usulan ini.' });
+        }
+
+        // 3. Verifikasi: Hanya bisa dihapus jika status masih 'Diajukan'
+        if (usulan.status !== 'Diajukan') {
+            return res.status(400).json({ message: 'Usulan yang sudah diproses tidak dapat dihapus.' });
+        }
+
+        // 4. Lakukan penghapusan (detail akan terhapus otomatis karena ON DELETE CASCADE)
+        await client.query('DELETE FROM rencana_pengadaan WHERE id = $1', [pengadaanId]);
+
+        await client.query('COMMIT');
+        res.json({ message: 'Usulan pengadaan berhasil dihapus.' });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error saat menghapus usulan pengadaan:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
+    } finally {
+        client.release();
+    }
+};
+
 module.exports = {
     createPengadaan,
     getAllPengadaan,
@@ -316,5 +365,6 @@ module.exports = {
     updateStatusPengadaan,
     downloadSuratPengadaan,
     getPengadaanByPengusul,
-    getPengadaanLogs
+    getPengadaanLogs,
+    deletePengadaan
 };

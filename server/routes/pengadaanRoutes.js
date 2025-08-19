@@ -7,7 +7,8 @@ const {
     updateStatusPengadaan,
     downloadSuratPengadaan,
     getPengadaanByPengusul,
-    getPengadaanLogs 
+    getPengadaanLogs,
+    deletePengadaan 
 } = require('../controllers/pengadaanController');
 const verifyToken = require('../middleware/verifyToken');
 
@@ -20,7 +21,8 @@ router.route('/pengadaan')
 router.get('/pengadaan/saya', getPengadaanByPengusul); 
 
 router.route('/pengadaan/:id')
-    .get(getPengadaanById);
+    .get(getPengadaanById)
+    .delete(deletePengadaan);
 
 router.put('/pengadaan/:id/status', updateStatusPengadaan);
 

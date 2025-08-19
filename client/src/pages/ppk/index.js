@@ -3,3 +3,4 @@ export * from "./TambahPengadaan";
 export * from "./TambahPeminjaman";
 export * from "./TambahPenghapusan";
 export * from "./DataUsulanSaya";
+export * from "./DataPeminjamanSaya"; 

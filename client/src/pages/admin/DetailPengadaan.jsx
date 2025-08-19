@@ -11,6 +11,7 @@ import {
 } from "@material-tailwind/react";
 import { useAuth } from "@/hooks/useAuth";
 import toast from 'react-hot-toast';
+import { ConfirmationModal } from "@/widgets/layout";
 
 // Helper functions
 const formatDate = (dateString) => new Date(dateString).toLocaleDateString("id-ID", { year: 'numeric', month: 'long', day: 'numeric' });
@@ -23,27 +24,24 @@ export function DetailPengadaan() {
     const { user } = useAuth();
 
     const [usulan, setUsulan] = useState(null);
-    const [logData, setLogData] = useState([]); // State baru untuk riwayat
+    const [logData, setLogData] = useState([]);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-    // Menggabungkan fetch detail dan log
     const fetchDetailAndLogs = async () => {
         setLoading(true);
         const token = localStorage.getItem("authToken");
         try {
-            // 1. Ambil detail usulan utama
             const usulanResponse = await fetch(`/api/pengadaan/${id}`, { headers: { Authorization: `Bearer ${token}` } });
             if (!usulanResponse.ok) throw new Error("Gagal mengambil detail usulan");
             const usulanData = await usulanResponse.json();
             setUsulan(usulanData);
 
-            // 2. Ambil data riwayat validasi
             const logResponse = await fetch(`/api/pengadaan/${id}/logs`, { headers: { Authorization: `Bearer ${token}` } });
             if (!logResponse.ok) throw new Error("Gagal mengambil riwayat validasi");
             const logs = await logResponse.json();
             setLogData(logs);
-
         } catch (err) {
             setError(err.message);
             toast.error(err.message);
@@ -68,18 +66,40 @@ export function DetailPengadaan() {
             if (!response.ok) throw new Error((await response.json()).message || 'Gagal update status');
             
             toast.success('Status berhasil diperbarui!', { id: toastId });
-            fetchDetailAndLogs(); // Muat ulang semua data setelah berhasil
+            fetchDetailAndLogs();
         } catch (err) {
             toast.error(err.message, { id: toastId });
             setError(err.message);
         }
     };
+    
+    const handleDelete = async () => {
+        setIsDeleteModalOpen(false);
+        const toastId = toast.loading('Menghapus usulan...');
+        const token = localStorage.getItem("authToken");
+        try {
+            const response = await fetch(`/api/pengadaan/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message);
+
+            toast.success('Usulan berhasil dihapus.', { id: toastId });
+            navigate(`/${user.role.toLowerCase().replace(/ /g, '-')}/usulan-saya`);
+        } catch (err) {
+            toast.error(err.message, { id: toastId });
+        }
+    };
 
     const ActionButtons = () => {
         if (!usulan || !user) return null;
-        const { status } = usulan;
-        const { role } = user;
+        const { status, user_pengusul_id } = usulan;
+        const { role, id: userId } = user;
 
+        if (status === 'Diajukan' && user_pengusul_id === userId) {
+            return ( <Button color="red" onClick={() => setIsDeleteModalOpen(true)}>Hapus Usulan</Button> );
+        }
         if (status === 'Diajukan' && role === 'Pengurus Barang') {
             return ( <div className="flex gap-2"> <Button color="green" onClick={() => handleUpdateStatus('Divalidasi Pengurus Barang')}>Validasi</Button> <Button color="red" onClick={() => handleUpdateStatus('Ditolak')}>Tolak</Button> </div> );
         }
@@ -174,7 +194,6 @@ export function DetailPengadaan() {
                 </CardFooter>
             </Card>
 
-            {/* CARD BARU UNTUK RIWAYAT VALIDASI */}
             <Card>
                 <CardHeader variant="gradient" color="blue-gray" className="p-6">
                     <Typography variant="h6" color="white">Riwayat Proses Validasi</Typography>
@@ -215,6 +234,14 @@ export function DetailPengadaan() {
                     )}
                 </CardBody>
             </Card>
+            
+            <ConfirmationModal
+                open={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDelete}
+                title="Konfirmasi Hapus Usulan"
+                message="Anda yakin ingin menghapus usulan pengadaan ini? Aksi ini tidak dapat dibatalkan."
+            />
         </div>
     );
 }

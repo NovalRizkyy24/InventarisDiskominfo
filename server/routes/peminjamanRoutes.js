@@ -4,11 +4,15 @@ const {
     createPeminjaman,
     getAllPeminjaman,
     updateStatusPeminjaman,
-    getPeminjamanById
+    getPeminjamanById,
+    getPeminjamanByPeminjam,
+    deletePeminjaman
 } = require('../controllers/peminjamanController');
 const verifyToken = require('../middleware/verifyToken');
 
 router.use(verifyToken);
+
+router.get('/peminjaman/saya', getPeminjamanByPeminjam);
 
 router.route('/peminjaman')
     .post(createPeminjaman)
@@ -17,6 +21,7 @@ router.route('/peminjaman')
 router.put('/peminjaman/:id/status', updateStatusPeminjaman);
 
 router.route('/peminjaman/:id')
-    .get(getPeminjamanById);
+    .get(getPeminjamanById)
+    .delete(deletePeminjaman);
 
 module.exports = router;

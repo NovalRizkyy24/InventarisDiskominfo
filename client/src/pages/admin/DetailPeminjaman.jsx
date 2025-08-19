@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardBody, Typography, Button, Chip } from "@material-tailwind/react";
 import { useAuth } from "@/hooks/useAuth";
+import toast from "react-hot-toast";
+import { ConfirmationModal } from "@/widgets/layout";
 
 const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString("id-ID") : "-";
 const getStatusColor = (status) => ({'Diajukan': 'blue', 'Divalidasi Pengurus Barang': 'green', 'Selesai': 'gray', 'Ditolak': 'red'})[status] || 'gray';
@@ -9,8 +11,10 @@ const getStatusColor = (status) => ({'Diajukan': 'blue', 'Divalidasi Pengurus Ba
 export function DetailPeminjaman() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [peminjaman, setPeminjaman] = useState(null);
   const [error, setError] = useState("");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const fetchDetail = async () => {
     const token = localStorage.getItem("authToken");
@@ -21,6 +25,7 @@ export function DetailPeminjaman() {
       setPeminjaman(data);
     } catch (err) {
       setError(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -28,6 +33,7 @@ export function DetailPeminjaman() {
   
   const handleUpdateStatus = async (status_baru) => {
     const token = localStorage.getItem("authToken");
+    const toastId = toast.loading("Memperbarui status...");
     try {
       const response = await fetch(`/api/peminjaman/${id}/status`, {
           method: 'PUT',
@@ -35,26 +41,53 @@ export function DetailPeminjaman() {
           body: JSON.stringify({ status_baru }),
       });
       if (!response.ok) throw new Error((await response.json()).message);
+      toast.success("Status berhasil diperbarui.", { id: toastId });
       fetchDetail();
     } catch(err) {
-        setError(err.message);
+        toast.error(err.message, { id: toastId });
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleteModalOpen(false);
+    const toastId = toast.loading("Menghapus pengajuan...");
+    const token = localStorage.getItem("authToken");
+    try {
+        const response = await fetch(`/api/peminjaman/${id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+        toast.success("Pengajuan berhasil dihapus.", { id: toastId });
+        navigate(`/${user.role.toLowerCase().replace(/ /g, '-')}/peminjaman-saya`);
+    } catch (err) {
+        toast.error(err.message, { id: toastId });
     }
   };
   
   const ActionButtons = () => {
     if (!peminjaman || !user) return null;
+    const { status, user_peminjam_id } = peminjaman;
+
+    // Logika untuk peminjam
+    if (user.id === user_peminjam_id && status === 'Diajukan') {
+        return <Button color="red" onClick={() => setIsDeleteModalOpen(true)}>Hapus Pengajuan</Button>;
+    }
+
+    // Logika untuk Pengurus Barang
     if (user.role === 'Pengurus Barang') {
-      if (peminjaman.status === 'Diajukan') {
+      if (status === 'Diajukan') {
         return <Button color="green" onClick={() => handleUpdateStatus('Divalidasi Pengurus Barang')}>Setujui Peminjaman</Button>;
       }
-      if (peminjaman.status === 'Divalidasi Pengurus Barang') {
+      if (status === 'Divalidasi Pengurus Barang') {
         return <Button color="blue" onClick={() => handleUpdateStatus('Selesai')}>Tandai Sudah Kembali</Button>;
       }
     }
     return null;
   };
 
-  if (!peminjaman) return <Typography>Memuat...</Typography>;
+  if (!peminjaman) return <Typography className="text-center mt-12">Memuat...</Typography>;
 
   return (
     <div className="mt-12 mb-8 flex flex-col gap-8">
@@ -74,12 +107,21 @@ export function DetailPeminjaman() {
             </div>
         </CardBody>
       </Card>
+      
       <Card>
           <CardHeader variant="gradient" color="gray" className="p-6"><Typography variant="h6" color="white">Aksi</Typography></CardHeader>
           <CardBody>
               <ActionButtons />
           </CardBody>
       </Card>
+
+      <ConfirmationModal
+        open={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Konfirmasi Hapus"
+        message="Anda yakin ingin menghapus pengajuan peminjaman ini?"
+      />
     </div>
   );
 }

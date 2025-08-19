@@ -15,7 +15,6 @@ const createPeminjaman = async (req, res) => {
     try {
         await client.query('BEGIN');
         
-        // Cek status barang
         const barangStatus = await client.query('SELECT status FROM barang WHERE id = $1', [barang_id]);
         if (barangStatus.rows.length === 0 || barangStatus.rows[0].status !== 'Tersedia') {
             throw new Error('NotAvailable');
@@ -85,7 +84,6 @@ const updateStatusPeminjaman = async (req, res) => {
         
         const { status: status_sebelum, barang_id } = currentData.rows[0];
 
-        // Jika disetujui, ubah status barang menjadi 'Dipinjam'
         if (status_baru === 'Selesai' && status_sebelum === 'Divalidasi Pengurus Barang') {
              await client.query("UPDATE peminjaman SET tanggal_aktual_kembali = NOW(), status = 'Selesai' WHERE id = $1", [id]);
              await client.query("UPDATE barang SET status = 'Tersedia' WHERE id = $1", [barang_id]);
@@ -136,10 +134,85 @@ const getPeminjamanById = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get all peminjaman requests by the logged-in user
+ * @route   GET /api/peminjaman/saya
+ * @access  Private
+ */
+const getPeminjamanByPeminjam = async (req, res) => {
+    const user_peminjam_id = req.user.id;
+    try {
+        const query = `
+            SELECT 
+                p.id,
+                p.status,
+                p.tanggal_mulai_pinjam,
+                p.tanggal_rencana_kembali,
+                b.nama_barang, 
+                u.nama AS nama_peminjam
+            FROM peminjaman p
+            JOIN barang b ON p.barang_id = b.id
+            JOIN users u ON p.user_peminjam_id = u.id
+            WHERE p.user_peminjam_id = $1
+            ORDER BY p.tanggal_pengajuan DESC;
+        `;
+        const { rows } = await pool.query(query, [user_peminjam_id]);
+        res.json(rows);
+    } catch (error) {
+        // Baris ini akan menampilkan error detail di konsol server Anda
+        console.error('Error detail saat mengambil data peminjaman:', error); 
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    }
+};
+
+/**
+ * @desc    Delete a peminjaman request by its creator
+ * @route   DELETE /api/peminjaman/:id
+ * @access  Private (Hanya peminjam)
+ */
+const deletePeminjaman = async (req, res) => {
+    const { id: peminjamanId } = req.params;
+    const { id: userId } = req.user; // Ambil ID pengguna dari token
+
+    try {
+        // 1. Ambil data peminjaman untuk verifikasi
+        const peminjamanQuery = await pool.query(
+            'SELECT user_peminjam_id, status FROM peminjaman WHERE id = $1',
+            [peminjamanId]
+        );
+
+        if (peminjamanQuery.rows.length === 0) {
+            return res.status(404).json({ message: 'Peminjaman tidak ditemukan.' });
+        }
+
+        const peminjaman = peminjamanQuery.rows[0];
+
+        // 2. Verifikasi: Hanya peminjam yang bisa menghapus
+        if (peminjaman.user_peminjam_id !== userId) {
+            return res.status(403).json({ message: 'Anda tidak memiliki izin untuk menghapus pengajuan ini.' });
+        }
+
+        // 3. Verifikasi: Hanya bisa dihapus jika status masih 'Diajukan'
+        if (peminjaman.status !== 'Diajukan') {
+            return res.status(400).json({ message: 'Pengajuan yang sudah diproses tidak dapat dihapus.' });
+        }
+
+        // 4. Lakukan penghapusan
+        await pool.query('DELETE FROM peminjaman WHERE id = $1', [peminjamanId]);
+
+        res.json({ message: 'Pengajuan peminjaman berhasil dihapus.' });
+
+    } catch (error) {
+        console.error('Error saat menghapus peminjaman:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
+    }
+};
+
 module.exports = {
     createPeminjaman,
     getAllPeminjaman,
     updateStatusPeminjaman,
     getPeminjamanById, 
+    getPeminjamanByPeminjam,
+    deletePeminjaman,
 };
-

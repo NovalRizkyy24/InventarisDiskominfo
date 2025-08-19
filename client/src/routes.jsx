@@ -41,7 +41,16 @@ import {
 import { Home as PengurusBarangHome } from "@/pages/pengurus-barang";
 import { Home as PenataUsahaBarangHome } from "@/pages/penata-usaha-barang";
 import { ValidasiBarang } from "@/pages/penata-usaha-barang/ValidasiBarang";
-import { Home as PpkHome, TambahPengadaan, TambahPeminjaman, TambahPenghapusan, DataUsulanSaya } from "@/pages/ppk";
+
+import { 
+    Home as PpkHome, 
+    TambahPengadaan, 
+    TambahPeminjaman, 
+    TambahPenghapusan, 
+    DataUsulanSaya,
+    DataPeminjamanSaya 
+} from "@/pages/ppk";
+
 import { Home as KabidHome } from "@/pages/kepala-bidang";
 import { Home as KadisHome } from "@/pages/kepala-dinas";
 
@@ -135,6 +144,7 @@ const routes = [
       { icon: <DocumentPlusIcon {...icon} />, name: "Buat Usulan Pengadaan", path: "/tambah-pengadaan", element: <TambahPengadaan /> },
       { icon: <ClipboardDocumentListIcon {...icon} />, name: "Ajukan Peminjaman", path: "/tambah-peminjaman", element: <TambahPeminjaman /> },
       { icon: <TrashIcon {...icon} />, name: "Ajukan Penghapusan", path: "/tambah-penghapusan", element: <TambahPenghapusan /> },
+      { icon: <ClipboardDocumentListIcon {...icon} />, name: "Peminjaman Saya", path: "/peminjaman-saya", element: <DataPeminjamanSaya /> },
       // Rute tanpa navigasi
       { path: "/detail-pengadaan/:id", element: <DetailPengadaan /> },
       { path: "/detail-peminjaman/:id", element: <DetailPeminjaman /> },
