@@ -11,7 +11,9 @@ import {
   Select,
   Option,
 } from "@material-tailwind/react";
+import toast from 'react-hot-toast'; // 1. Impor toast
 
+// Fungsi untuk memformat tanggal ke YYYY-MM-DD
 const formatDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -21,49 +23,45 @@ const formatDate = (dateString) => {
 export function EditBarang() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [kategoriList, setKategoriList] = useState([]);
   const [formData, setFormData] = useState({
     nama_barang: "",
     kode_barang: "",
     kategori_id: "",
     merk: "",
     tipe: "",
+    sumber_dana: "",
     tanggal_perolehan: "",
     nilai_perolehan: "",
     status: "",
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [kategoriList, setKategoriList] = useState([]);
+  const [loading, setLoading] = useState(false); // 2. Tambahkan state loading
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-    
+
     const fetchKategori = async () => {
       try {
         const response = await fetch('/api/kategori', { headers: { Authorization: `Bearer ${token}` } });
-        if (!response.ok) throw new Error("Gagal memuat daftar kategori");
-        const data = await response.json();
-        setKategoriList(data);
-      } catch (err) {
-        setError(err.message);
-      }
-    };
-
-    const fetchBarangData = async () => {
-      try {
-        const response = await fetch(`/api/barang/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-        if (!response.ok) throw new Error("Gagal mengambil data barang");
-        const data = await response.json();
-        setFormData({ 
-          ...data, 
-          tanggal_perolehan: formatDate(data.tanggal_perolehan),
-          kategori_id: data.kategori_id ? String(data.kategori_id) : "" // Pastikan kategori_id adalah string
-        });
-      } catch (err) {
-        setError(err.message);
+        setKategoriList(await response.json());
+      } catch (error) {
+        toast.error("Gagal memuat daftar kategori.");
       }
     };
     
+    const fetchBarangData = async () => {
+      try {
+        const response = await fetch(`/api/barang/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error("Gagal mengambil data barang");
+        const data = await response.json();
+        setFormData({ ...data, tanggal_perolehan: formatDate(data.tanggal_perolehan) });
+      } catch (err) {
+        toast.error(err.message);
+      }
+    };
+
     fetchKategori();
     fetchBarangData();
   }, [id]);
@@ -83,7 +81,10 @@ export function EditBarang() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true); // 3. Atur loading
     const token = localStorage.getItem("authToken");
+    const toastId = toast.loading('Memperbarui data...');
+
     try {
       const response = await fetch(`/api/barang/${id}`, {
         method: "PUT",
@@ -95,10 +96,13 @@ export function EditBarang() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Gagal memperbarui data");
-      setSuccess("Data barang berhasil diperbarui!");
-      setTimeout(() => navigate("/admin/data-barang"), 2000);
+      
+      toast.success("Data barang berhasil diperbarui!", { id: toastId });
+      setTimeout(() => navigate("/admin/data-barang"), 1500);
+
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message, { id: toastId });
+      setLoading(false); // 4. Atur loading false jika gagal
     }
   };
 
@@ -110,21 +114,17 @@ export function EditBarang() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardBody className="flex flex-col gap-6 p-6">
-            {error && <Typography color="red" className="text-center">{error}</Typography>}
-            {success && <Typography color="green" className="text-center">{success}</Typography>}
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input label="Nama Barang*" name="nama_barang" value={formData.nama_barang || ''} onChange={handleChange} required />
               <Input label="Kode Barang*" name="kode_barang" value={formData.kode_barang || ''} onChange={handleChange} required />
-              <Select label="Kategori" name="kategori_id" value={formData.kategori_id} onChange={handleKategoriChange}>
+              <Select label="Kategori" name="kategori_id" value={String(formData.kategori_id || '')} onChange={handleKategoriChange}>
                 {kategoriList.map((kat) => (
-                  <Option key={kat.id} value={String(kat.id)}>
-                    {kat.nama_kategori}
-                  </Option>
+                  <Option key={kat.id} value={String(kat.id)}>{kat.nama_kategori}</Option>
                 ))}
               </Select>
               <Input label="Merk" name="merk" value={formData.merk || ''} onChange={handleChange} />
               <Input label="Tipe" name="tipe" value={formData.tipe || ''} onChange={handleChange} />
+              <Input label="Sumber Dana" name="sumber_dana" value={formData.sumber_dana || ''} onChange={handleChange} />
               <Input type="date" label="Tanggal Perolehan*" name="tanggal_perolehan" value={formData.tanggal_perolehan} onChange={handleChange} required />
               <Input type="number" label="Nilai Perolehan (Rp)*" name="nilai_perolehan" value={formData.nilai_perolehan || ''} onChange={handleChange} required />
               <Select label="Status*" name="status" value={formData.status} onChange={handleStatusChange}>
@@ -137,8 +137,11 @@ export function EditBarang() {
             </div>
           </CardBody>
           <CardFooter className="pt-0 p-6 flex justify-end gap-2">
-             <Button variant="text" color="blue-gray" onClick={() => navigate("/admin/data-barang")}>Batal</Button>
-            <Button variant="gradient" type="submit">Simpan Perubahan</Button>
+             <Button variant="text" color="blue-gray" onClick={() => navigate("/admin/data-barang")} disabled={loading}>Batal</Button>
+            {/* 5. Terapkan state loading ke tombol */}
+            <Button variant="gradient" type="submit" disabled={loading}>
+              {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </Button>
           </CardFooter>
         </form>
       </Card>

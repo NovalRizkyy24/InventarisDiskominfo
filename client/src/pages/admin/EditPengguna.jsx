@@ -11,6 +11,7 @@ import {
   Select,
   Option,
 } from "@material-tailwind/react";
+import toast from 'react-hot-toast'; // 1. Impor toast
 
 export function EditPengguna() {
   const { id } = useParams();
@@ -19,12 +20,9 @@ export function EditPengguna() {
     nama: "",
     username: "",
     role: "",
-    jabatan: "", 
-    nip: "",
     password: "", 
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false); // 2. Tambahkan state loading
 
   const userRoles = [
     "Pengurus Barang",
@@ -40,18 +38,15 @@ export function EditPengguna() {
     const fetchUserData = async () => {
       try {
         const response = await fetch(`/api/users/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) {
           throw new Error("Gagal mengambil data pengguna");
         }
         const data = await response.json();
-        // Jangan sertakan password saat mengambil data awal
         setUserData({ ...data, password: "" }); 
       } catch (err) {
-        setError(err.message);
+        toast.error(err.message);
       }
     };
     fetchUserData();
@@ -68,23 +63,20 @@ export function EditPengguna() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setLoading(true); // 3. Atur loading
     const token = localStorage.getItem("authToken");
     
-    // Siapkan data untuk dikirim
     const dataToUpdate = {
       nama: userData.nama,
       username: userData.username,
       role: userData.role,
-      jabatan: userData.jabatan,
-      nip: userData.nip,
     };
     
-    // Hanya tambahkan password jika diisi
     if (userData.password) {
       dataToUpdate.password = userData.password;
     }
+
+    const toastId = toast.loading('Memperbarui data...');
 
     try {
       const response = await fetch(`/api/users/${id}`, {
@@ -93,16 +85,19 @@ export function EditPengguna() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(dataToUpdate), // <-- Kirim data yang sudah disiapkan
+        body: JSON.stringify(dataToUpdate),
       });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || "Gagal memperbarui data");
       }
-      setSuccess("Data pengguna berhasil diperbarui!");
-      setTimeout(() => navigate("/admin/data-pengguna"), 2000);
+      
+      toast.success("Data pengguna berhasil diperbarui!", { id: toastId });
+      setTimeout(() => navigate("/admin/data-pengguna"), 1500);
+
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message, { id: toastId });
+      setLoading(false); // 4. Atur loading false jika gagal
     }
   };
 
@@ -116,16 +111,6 @@ export function EditPengguna() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardBody className="flex flex-col gap-6 p-6">
-            {error && (
-              <Typography color="red" className="text-center">
-                {error}
-              </Typography>
-            )}
-            {success && (
-              <Typography color="green" className="text-center">
-                {success}
-              </Typography>
-            )}
             <Input
               label="Nama Lengkap"
               name="nama"
@@ -140,13 +125,6 @@ export function EditPengguna() {
               onChange={handleChange}
               required
             />
-            <Input
-              label="Jabatan" name="jabatan" value={userData.jabatan || ''} onChange={handleChange}
-            />
-            <Input
-              label="NIP" name="nip" value={userData.nip || ''} onChange={handleChange}
-            />
-            {/* Tambahkan input password baru */}
             <Input
               type="password"
               label="Password Baru (opsional)"
@@ -167,11 +145,12 @@ export function EditPengguna() {
             </Select>
           </CardBody>
           <CardFooter className="pt-0 p-6 flex justify-end gap-2">
-             <Button variant="text" color="blue-gray" onClick={() => navigate("/admin/data-pengguna")}>
+             <Button variant="text" color="blue-gray" onClick={() => navigate("/admin/data-pengguna")} disabled={loading}>
               Batal
             </Button>
-            <Button variant="gradient" type="submit">
-              Simpan Perubahan
+            {/* 5. Terapkan state loading ke tombol */}
+            <Button variant="gradient" type="submit" disabled={loading}>
+              {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
             </Button>
           </CardFooter>
         </form>

@@ -11,6 +11,7 @@ import {
   Select,
   Option,
 } from "@material-tailwind/react";
+import toast from 'react-hot-toast'; // <-- 1. Impor toast
 
 export function TambahPengguna() {
   const navigate = useNavigate();
@@ -19,11 +20,8 @@ export function TambahPengguna() {
     username: "",
     password: "",
     role: "",
-    jabatan: "",
-    nip: "",
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false); // <-- 2. Tambahkan state untuk loading
 
   const userRoles = [
     "Pengurus Barang",
@@ -45,9 +43,11 @@ export function TambahPengguna() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setLoading(true); // <-- 3. Set loading menjadi true saat proses dimulai
     const token = localStorage.getItem("authToken");
+
+    // Tampilkan notifikasi "loading"
+    const toastId = toast.loading('Menyimpan data...');
 
     try {
       const response = await fetch(`/api/users`, {
@@ -62,10 +62,16 @@ export function TambahPengguna() {
       if (!response.ok) {
         throw new Error(data.message || "Gagal membuat pengguna baru");
       }
-      setSuccess("Pengguna baru berhasil dibuat!");
-      setTimeout(() => navigate("/admin/data-pengguna"), 2000);
+
+      // Tampilkan notifikasi sukses
+      toast.success('Pengguna baru berhasil dibuat!', { id: toastId });
+      
+      setTimeout(() => navigate("/admin/data-pengguna"), 1500); // Beri jeda agar user bisa lihat notifikasi
+
     } catch (err) {
-      setError(err.message);
+      // Tampilkan notifikasi error
+      toast.error(err.message || 'Terjadi kesalahan.', { id: toastId });
+      setLoading(false); // <-- 4. Set loading false jika gagal
     }
   };
 
@@ -79,13 +85,8 @@ export function TambahPengguna() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardBody className="flex flex-col gap-6 p-6">
-            {error && <Typography color="red" className="text-center">{error}</Typography>}
-            {success && <Typography color="green" className="text-center">{success}</Typography>}
-            
             <Input label="Nama Lengkap" name="nama" onChange={handleChange} required />
             <Input label="Username" name="username" onChange={handleChange} required />
-            <Input type="password" label="Password" name="password" onChange={handleChange} required />
-            <Input label="NIP" name="nip" onChange={handleChange} />
             <Input type="password" label="Password" name="password" onChange={handleChange} required />
             
             <Select label="Peran" name="role" onChange={handleRoleChange} required>
@@ -95,11 +96,12 @@ export function TambahPengguna() {
             </Select>
           </CardBody>
           <CardFooter className="pt-0 p-6 flex justify-end gap-2">
-             <Button variant="text" color="blue-gray" onClick={() => navigate("/admin/data-pengguna")}>
+             <Button variant="text" color="blue-gray" onClick={() => navigate("/admin/data-pengguna")} disabled={loading}>
               Batal
             </Button>
-            <Button variant="gradient" type="submit">
-              Simpan
+            {/* <-- 5. Tambahkan logika loading pada tombol simpan --> */}
+            <Button variant="gradient" type="submit" disabled={loading}>
+              {loading ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </CardFooter>
         </form>
