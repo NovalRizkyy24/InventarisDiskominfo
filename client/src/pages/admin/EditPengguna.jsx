@@ -11,7 +11,7 @@ import {
   Select,
   Option,
 } from "@material-tailwind/react";
-import toast from 'react-hot-toast'; // 1. Impor toast
+import toast from 'react-hot-toast';
 
 export function EditPengguna() {
   const { id } = useParams();
@@ -20,9 +20,11 @@ export function EditPengguna() {
     nama: "",
     username: "",
     role: "",
-    password: "", 
+    password: "",
+    jabatan: "", 
+    nip: "",     
   });
-  const [loading, setLoading] = useState(false); // 2. Tambahkan state loading
+  const [loading, setLoading] = useState(false);
 
   const userRoles = [
     "Pengurus Barang",
@@ -63,13 +65,15 @@ export function EditPengguna() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true); // 3. Atur loading
+    setLoading(true);
     const token = localStorage.getItem("authToken");
     
     const dataToUpdate = {
       nama: userData.nama,
       username: userData.username,
       role: userData.role,
+      jabatan: userData.jabatan,
+      nip: userData.nip,
     };
     
     if (userData.password) {
@@ -97,7 +101,7 @@ export function EditPengguna() {
 
     } catch (err) {
       toast.error(err.message, { id: toastId });
-      setLoading(false); // 4. Atur loading false jika gagal
+      setLoading(false);
     }
   };
 
@@ -111,34 +115,12 @@ export function EditPengguna() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardBody className="flex flex-col gap-6 p-6">
-            <Input
-              label="Nama Lengkap"
-              name="nama"
-              value={userData.nama}
-              onChange={handleChange}
-              required
-            />
-            <Input
-              label="Username"
-              name="username"
-              value={userData.username}
-              onChange={handleChange}
-              required
-            />
-            <Input
-              type="password"
-              label="Password Baru (opsional)"
-              name="password"
-              value={userData.password}
-              onChange={handleChange}
-            />
-            <Select
-              label="Peran"
-              name="role"
-              value={userData.role}
-              onChange={handleRoleChange}
-              required
-            >
+            <Input label="Nama Lengkap" name="nama" value={userData.nama || ''} onChange={handleChange} required />
+            <Input label="Username" name="username" value={userData.username || ''} onChange={handleChange} required />
+            <Input type="password" label="Password Baru (opsional)" name="password" value={userData.password} onChange={handleChange} />
+            <Input label="Jabatan (Opsional)" name="jabatan" value={userData.jabatan || ''} onChange={handleChange} />
+            <Input label="NIP (Opsional)" name="nip" value={userData.nip || ''} onChange={handleChange} />
+            <Select label="Peran" name="role" value={userData.role} onChange={handleRoleChange} required >
               {userRoles.map((role) => (
                 <Option key={role} value={role}>{role}</Option>
               ))}
@@ -148,7 +130,6 @@ export function EditPengguna() {
              <Button variant="text" color="blue-gray" onClick={() => navigate("/admin/data-pengguna")} disabled={loading}>
               Batal
             </Button>
-            {/* 5. Terapkan state loading ke tombol */}
             <Button variant="gradient" type="submit" disabled={loading}>
               {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
             </Button>

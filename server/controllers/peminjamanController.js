@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const puppeteer = require('puppeteer'); 
 
 // @desc    Create a new peminjaman request
 // @route   POST /api/peminjaman
@@ -208,6 +209,192 @@ const deletePeminjaman = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Save Pihak Kedua details for a peminjaman
+ * @route   PUT /api/peminjaman/:id/pihak-kedua
+ * @access  Private
+ */
+const savePihakKedua = async (req, res) => {
+    const { id } = req.params;
+    const { nama_pihak_kedua, nip_pihak_kedua, jabatan_pihak_kedua } = req.body;
+
+    if (!nama_pihak_kedua || !nip_pihak_kedua || !jabatan_pihak_kedua) {
+        return res.status(400).json({ message: 'Semua field Pihak Kedua wajib diisi.' });
+    }
+
+    try {
+        const updateQuery = `
+            UPDATE peminjaman 
+            SET nama_pihak_kedua = $1, nip_pihak_kedua = $2, jabatan_pihak_kedua = $3
+            WHERE id = $4 RETURNING *;
+        `;
+        const { rows } = await pool.query(updateQuery, [nama_pihak_kedua, nip_pihak_kedua, jabatan_pihak_kedua, id]);
+        
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Data peminjaman tidak ditemukan.' });
+        }
+
+        res.json({ message: 'Data Pihak Kedua berhasil disimpan.', peminjaman: rows[0] });
+
+    } catch (error) {
+        console.error('Error saat menyimpan data Pihak Kedua:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
+    }
+};
+
+
+/**
+ * @desc    Download Berita Acara Peminjaman (data from DB)
+ * @route   GET /api/peminjaman/:id/download-berita-acara
+ * @access  Private
+ */
+const downloadBeritaAcara = async (req, res) => {
+    const { id } = req.params;
+    try {
+        // 1. Ambil data peminjaman yang sudah ada di database
+        const query = `
+            SELECT p.*, b.nama_barang, b.merk, b.tipe, b.nilai_perolehan
+            FROM peminjaman p
+            JOIN barang b ON p.barang_id = b.id
+            WHERE p.id = $1;
+        `;
+        const { rows } = await pool.query(query, [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Data peminjaman tidak ditemukan.' });
+        }
+        const data = rows[0];
+
+        // Validasi jika data pihak kedua belum disimpan
+        if (!data.nama_pihak_kedua || !data.nip_pihak_kedua || !data.jabatan_pihak_kedua) {
+            return res.status(400).json({ message: 'Data Pihak Kedua belum disimpan. Harap simpan terlebih dahulu.' });
+        }
+
+        // 2. Proses pembuatan PDF (Template HTML tidak berubah)
+        const formatDate = (date) => new Date(date).toLocaleDateString('id-ID', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+        });
+        const formatRupiah = (number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 2 }).format(number);
+        const simpleDate = (date) => new Date(date).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+
+        const htmlContent = `
+        <html>
+            <head>
+                <style>
+                    /* Margin di CSS diatur ke nilai yang lebih kecil */
+                    body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; margin: 0; } 
+                    .page-container { padding: 1cm 1cm; } /* Kontrol padding di sini */
+                    p { line-height: 1.5; text-align: justify; margin: 0; }
+                    .header { text-align: center; font-weight: bold; }
+                    .underline { text-decoration: underline; }
+                    table { width: 100%; border-collapse: collapse; }
+                    .info-table { margin-left: 20px; }
+                    .info-table td { padding: 1px 0; vertical-align: top; line-height: 1.5; }
+                    .item-table, .item-table th, .item-table td { border: 1px solid black; }
+                    .item-table th, .item-table td { padding: 8px; text-align: center; }
+                    .signature-table { margin-top: 30px; }
+                    .signature-table td { text-align: center; width: 50%; }
+                    .pasal { text-align: center; font-weight: bold; margin-top: 1.5em; margin-bottom: 1em; }
+                </style>
+            </head>
+            <body>
+                <div class="page-container">
+                    <div class="header">
+                        <p class="underline">BERITA ACARA PINJAM PAKAI BARANG MILIK DAERAH</p>
+                        <p>Nomor: 027/BA-PinjamPakai/${data.id}/${new Date().getFullYear()}</p>
+                    </div>
+                    <br/>
+                    <p>Pada hari ini, ${formatDate(new Date())}, yang bertanda tangan dibawah ini:</p>
+                    
+                    <table class="info-table" style="margin-top: 1em;">
+                        <tr><td width="80px">Nama</td><td width="10px">:</td><td><b>Y. Ahmad Brilyana, S.Sos, M.Si</b></td></tr>
+                        <tr><td>NIP</td><td>:</td><td>19731127 199303 1 003</td></tr>
+                        <tr><td>Jabatan</td><td>:</td><td>Kepala Dinas Komunikasi dan Informatika</td></tr>
+                        <tr><td colspan="3" style="padding-top: 5px;">Yang selanjutnya disebut <b>PIHAK PERTAMA</b>.</td></tr>
+                        <tr><td colspan="3" style="height: 1em;">&nbsp;</td></tr>
+                        <tr><td>Nama</td><td>:</td><td><b>${data.nama_pihak_kedua}</b></td></tr>
+                        <tr><td>NIP</td><td>:</td><td>${data.nip_pihak_kedua}</td></tr>
+                        <tr><td>Jabatan</td><td>:</td><td>${data.jabatan_pihak_kedua}</td></tr>
+                        <tr><td colspan="3" style="padding-top: 5px;">Yang selanjutnya disebut <b>PIHAK KEDUA</b>.</td></tr>
+                    </table>
+
+                    <p class="pasal">Pasal 1</p>
+                    <p>PIHAK PERTAMA telah menyerahkan (pinjam pakai) kepada PIHAK KEDUA Barang Inventaris Daerah sebagai berikut :</p>
+                    
+                    <table class="item-table" style="margin-top: 1em; margin-bottom: 1em;">
+                        <thead>
+                            <tr><th>No</th><th>Nama Barang</th><th>Jumlah</th><th>Harga</th><th>Keterangan</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>${data.nama_barang}</td>
+                                <td>1 Unit</td>
+                                <td>${formatRupiah(data.nilai_perolehan)}</td>
+                                <td>Merk/Tipe: ${data.merk || '-'} / ${data.tipe || '-'}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p class="pasal">Pasal 2</p>
+                    <p>Barang Inventaris dimaksud pada pasal 1 digunakan semata mata untuk menunjang kegiatan ${data.keperluan || 'Dinas'} dan diatur dengan ketentuan sebagai berikut :</p>
+                    <ol style="padding-left: 20px; text-align: justify; margin: 0;">
+                        <li>Dengan diserahkannya barang inventaris tersebut diatas, maka untuk segala sesuatunya yang berkenaan dengan segala biaya sarana dan prasarana fasilitas baik berupa kerusakan perbaikan serta kelengkapannya yang berkaitan dengan barang inventaris tersebut menjadi tanggung jawab PIHAK KEDUA.</li>
+                        <li>Pemegang barang inventaris barang milik daerah wajib memilihara dan bertanggung jawab atas barang yang digunakan antara lain bila terjadi kerusakan atau hilang dan lain – lain menjadi tanggung jawab PIHAK KEDUA sesuai ketentuan peraturan yang berlaku.</li>
+                        <li>Tidak dibenarkan untuk merubah, menambah / mengurangi segala fasilitas / perlengkapan yang terdapat di dalam barang inventaris tersebut.</li>
+                    </ol>
+
+                    <p class="pasal">Pasal 3</p>
+                    <p>Hal hal yang belum diatur dalam berita acara ini akan diatur kemudian.</p>
+                    <p style="margin-top: 1em;">Demikian berita acara pinjam pakai barang inventaris (Barang Milik Daerah) ini dibuat untuk dipergunakan sebagai mana mestinya.</p>
+                    
+                    <div style="width: 100%; overflow: hidden; margin-top: 30px;">
+                        <div style="width: 40%; float: right; text-align: left;">
+                            Bandung, ${simpleDate(new Date())}
+                        </div>
+                    </div>
+                    
+                    <table class="signature-table">
+                        <tr>
+                            <td>
+                                <div>PIHAK PERTAMA,</div>
+                                <div>Kepala Dinas Komunikasi dan Informatika</div>
+                                <div style="height: 80px;"></div>
+                                <div class="underline"><b>Y. Ahmad Brilyana, S.Sos, M.Si</b></div>
+                                <div>NIP. 19731127 199303 1 003</div>
+                            </td>
+                            <td>
+                                <div>PIHAK KEDUA,</div>
+                                <div>${data.jabatan_pihak_kedua}</div>
+                                <div style="height: 80px;"></div>
+                                <div class="underline"><b>${data.nama_pihak_kedua}</b></div>
+                                <div>NIP. ${data.nip_pihak_kedua}</div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </body>
+        </html>
+        `;
+
+        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+        const page = await browser.newPage();
+        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '2.5cm', right: '2.5cm', bottom: '2.5cm', left: '2.5cm' } });
+        await browser.close();
+
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Length': pdfBuffer.length,
+            'Content-Disposition': `attachment; filename="berita-acara-peminjaman-${data.id}.pdf"`
+        });
+        res.send(pdfBuffer);
+
+    } catch (error) {
+        console.error('Error saat membuat Berita Acara PDF:', error);
+        res.status(500).json({ message: 'Gagal membuat Berita Acara PDF.' });
+    }
+};
+
 module.exports = {
     createPeminjaman,
     getAllPeminjaman,
@@ -215,4 +402,6 @@ module.exports = {
     getPeminjamanById, 
     getPeminjamanByPeminjam,
     deletePeminjaman,
+    savePihakKedua,
+    downloadBeritaAcara,
 };

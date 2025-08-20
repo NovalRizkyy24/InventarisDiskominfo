@@ -6,7 +6,9 @@ const {
     updateStatusPeminjaman,
     getPeminjamanById,
     getPeminjamanByPeminjam,
-    deletePeminjaman
+    deletePeminjaman,
+    savePihakKedua,       // Pastikan ini diimpor
+    downloadBeritaAcara
 } = require('../controllers/peminjamanController');
 const verifyToken = require('../middleware/verifyToken');
 
@@ -19,6 +21,14 @@ router.route('/peminjaman')
     .get(getAllPeminjaman);
     
 router.put('/peminjaman/:id/status', updateStatusPeminjaman);
+
+// --- PASTIKAN BAGIAN INI SUDAH BENAR ---
+// Rute untuk menyimpan data (Method: PUT)
+router.put('/peminjaman/:id/pihak-kedua', savePihakKedua);
+
+// Rute untuk download PDF (Method: GET)
+router.get('/peminjaman/:id/download-berita-acara', downloadBeritaAcara);
+// --- AKHIR PERBAIKAN ---
 
 router.route('/peminjaman/:id')
     .get(getPeminjamanById)
