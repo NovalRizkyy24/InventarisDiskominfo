@@ -11,7 +11,23 @@ import {
   Select,
   Option,
 } from "@material-tailwind/react";
-import toast from 'react-hot-toast'; // 1. Impor toast
+import toast from 'react-hot-toast';
+
+const formatRupiah = (angka) => {
+  if (!angka) return "";
+  const number_string = angka.toString().replace(/[^,\d]/g, '');
+  const split = number_string.split(',');
+  const sisa = split[0].length % 3;
+  let rupiah = split[0].substr(0, sisa);
+  const ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+  if (ribuan) {
+    const separator = sisa ? '.' : '';
+    rupiah += separator + ribuan.join('.');
+  }
+
+  return rupiah;
+};
 
 export function TambahBarang() {
   const navigate = useNavigate();
@@ -27,7 +43,8 @@ export function TambahBarang() {
     nilai_perolehan: "",
     status: "Tersedia",
   });
-  const [loading, setLoading] = useState(false); // 2. Tambahkan state loading
+  const [loading, setLoading] = useState(false);
+  const [kodePrefix, setKodePrefix] = useState("");
 
   useEffect(() => {
     const fetchKategori = async () => {
@@ -45,20 +62,48 @@ export function TambahBarang() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === 'kode_barang') {
+      if (kodePrefix && !value.startsWith(kodePrefix)) {
+        return; 
+      }
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    } else if (name === 'nilai_perolehan') {
+        const numericValue = value.replace(/[^0-9]/g, '');
+        setFormData((prev) => ({ ...prev, [name]: numericValue }));
+    } else {
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
   
   const handleKategoriChange = (value) => {
-    setFormData((prev) => ({...prev, kategori_id: value}));
+    const selectedKategori = kategoriList.find(kat => String(kat.id) === value);
+
+    if (selectedKategori) {
+      const prefix = `${selectedKategori.kode_kategori}-`;
+      setKodePrefix(prefix); 
+      setFormData((prev) => ({
+        ...prev,
+        kategori_id: value,
+        kode_barang: prefix, 
+      }));
+    } else {
+      setKodePrefix("");
+      setFormData((prev) => ({
+        ...prev,
+        kategori_id: "",
+        kode_barang: "",
+      }));
+    }
   };
 
-  const handleStatusChange = (value) => {
-    setFormData((prev) => ({...prev, status: value}));
-  };
+  // const handleStatusChange = (value) => {
+  //   setFormData((prev) => ({...prev, status: value}));
+  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true); // 3. Atur loading
+    setLoading(true);
     const token = localStorage.getItem("authToken");
     const toastId = toast.loading('Menyimpan data...');
 
@@ -81,7 +126,7 @@ export function TambahBarang() {
 
     } catch (err) {
       toast.error(err.message, { id: toastId });
-      setLoading(false); // 4. Atur loading false jika gagal
+      setLoading(false);
     }
   };
 
@@ -97,30 +142,30 @@ export function TambahBarang() {
           <CardBody className="flex flex-col gap-6 p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input label="Nama Barang*" name="nama_barang" onChange={handleChange} required />
-              <Input label="Kode Barang*" name="kode_barang" onChange={handleChange} required />
               <Select label="Kategori" name="kategori_id" onChange={handleKategoriChange}>
                 {kategoriList.map((kat) => (
                   <Option key={kat.id} value={String(kat.id)}>{kat.nama_kategori}</Option>
                 ))}
               </Select>
+              <Input 
+                label="Kode Barang*" 
+                name="kode_barang" 
+                value={formData.kode_barang} 
+                onChange={handleChange} 
+                required 
+                disabled={!kodePrefix} 
+              />
               <Input label="Merk" name="merk" onChange={handleChange} />
               <Input label="Tipe" name="tipe" onChange={handleChange} />
               <Input label="Sumber Dana" name="sumber_dana" onChange={handleChange} />
               <Input type="date" label="Tanggal Perolehan*" name="tanggal_perolehan" onChange={handleChange} required />
-              <Input type="number" label="Nilai Perolehan (Rp)*" name="nilai_perolehan" onChange={handleChange} required />
-              <Select label="Status*" name="status" value={formData.status} onChange={handleStatusChange}>
-                <Option value="Tersedia">Tersedia</Option>
-                <Option value="Dipinjam">Dipinjam</Option>
-                <Option value="Dalam Perbaikan">Dalam Perbaikan</Option>
-                <Option value="Rusak Berat">Rusak Berat</Option>
-              </Select>
+              <Input type="text" label="Nilai Perolehan (Rp)*" name="nilai_perolehan" value={formatRupiah(formData.nilai_perolehan)} onChange={handleChange} required />
             </div>
           </CardBody>
           <CardFooter className="pt-0 p-6 flex justify-end gap-2">
             <Button variant="text" color="blue-gray" onClick={() => navigate("/admin/data-barang")} disabled={loading}>
               Batal
             </Button>
-            {/* 5. Terapkan state loading ke tombol */}
             <Button variant="gradient" type="submit" disabled={loading}>
               {loading ? 'Menyimpan...' : 'Simpan'}
             </Button>

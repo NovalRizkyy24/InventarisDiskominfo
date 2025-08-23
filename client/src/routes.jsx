@@ -8,13 +8,12 @@ import {
   ClipboardDocumentListIcon,
   TrashIcon,
   DocumentMagnifyingGlassIcon,
-  CheckBadgeIcon, 
+  CheckBadgeIcon,
+  DocumentChartBarIcon, 
 } from "@heroicons/react/24/solid";
 
-// Impor Halaman Umum dan Autentikasi
 import { SignIn, SignUp } from "@/pages/auth";
 
-// Impor Semua Halaman Admin
 import { 
   Home as AdminHome, 
   DataPengguna, 
@@ -35,9 +34,9 @@ import {
   EditKategori,
   DetailBarang,
   AturLokasi, 
+  Laporan
 } from "@/pages/admin";
 
-// Impor Halaman Peran Lainnya
 import { Home as PengurusBarangHome } from "@/pages/pengurus-barang";
 import { Home as PenataUsahaBarangHome } from "@/pages/penata-usaha-barang";
 import { ValidasiBarang } from "@/pages/penata-usaha-barang/ValidasiBarang";
@@ -76,7 +75,8 @@ const routes = [
       { icon: <ClipboardDocumentListIcon {...icon} />, name: "Data Peminjaman", path: "/data-peminjaman", element: <DataPeminjaman /> },
       { icon: <TrashIcon {...icon} />, name: "Data Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
       { icon: <RectangleStackIcon {...icon} />, name: "Profil", path: "/profil", element: <Profil /> },
-      // Rute tanpa navigasi (tidak ditampilkan di sidebar)
+      { icon: <DocumentChartBarIcon {...icon} />, name: "Laporan", path: "/laporan", element: <Laporan /> },
+      // Rute tanpa navigasi 
       { path: "/edit-pengguna/:id", element: <EditPengguna /> },
       { path: "/tambah-pengguna", element: <TambahPengguna /> },
       { path: "/tambah-barang", element: <TambahBarang /> },
@@ -123,6 +123,7 @@ const routes = [
       { icon: <TableCellsIcon {...icon} />, name: "Data Barang", path: "/data-barang", element: <DataBarang /> },
       { icon: <CheckBadgeIcon {...icon} />, name: "Validasi Transaksi",
         subRoutes: [
+            { icon: <TableCellsIcon {...icon} />, name: "Validasi Pendataan Barang", path: "/data-barang", element: <DataBarang /> },
             { icon: <DocumentPlusIcon {...icon} />, name: "Validasi Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
             { icon: <TrashIcon {...icon} />, name: "Validasi Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
         ]
@@ -131,6 +132,7 @@ const routes = [
       { path: "/detail-pengadaan/:id", element: <DetailPengadaan /> },
       { path: "/detail-penghapusan/:id", element: <DetailPenghapusan /> },
       { path: "/validasi-barang/:id", element: <ValidasiBarang /> }, 
+      { path: "/detail-barang/:id", element: <DetailBarang /> },
     ],
   },
   // --- Rute untuk PPK ---

@@ -38,7 +38,7 @@ export function DataPenghapusan() {
           <table className="w-full min-w-[640px] table-auto">
             <thead>
               <tr>
-                {["Nama Barang", "Pengusul", "Tgl Usulan", "Status", "Aksi"].map((el) => (
+                {["Nama Barang", "Pengusul", "Tanggal Usulan", "Status", "Aksi"].map((el) => (
                   <th key={el} className="border-b border-blue-gray-50 py-3 px-5 text-left">
                     <Typography variant="small" className="text-[11px] font-bold uppercase text-blue-gray-400">{el}</Typography>
                   </th>

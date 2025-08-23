@@ -6,51 +6,55 @@ import {
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/solid";
 import toast from 'react-hot-toast';
 
+const formatRupiah = (angka) => {
+  if (!angka) return "";
+  const number_string = angka.toString().replace(/[^,\d]/g, '');
+  const split = number_string.split(',');
+  const sisa = split[0].length % 3;
+  let rupiah = split[0].substr(0, sisa);
+  const ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+  if (ribuan) {
+    const separator = sisa ? '.' : '';
+    rupiah += separator + ribuan.join('.');
+  }
+
+  return rupiah;
+};
+
+const unformatRupiah = (rupiah) => {
+    return rupiah ? parseInt(rupiah.replace(/\./g, ''), 10) : 0;
+};
+
 export function TambahPengadaan() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     program: "",
     kegiatan: "",
     output: "",
-    ppk_id: "",
     rekening_belanja: "", 
   });
   const [details, setDetails] = useState([
     { nama_barang_usulan: "", jumlah: 1, satuan: "", harga_satuan: 0, spesifikasi_usulan: "", jenis_belanja: "Belanja Modal" },
   ]);
-  const [ppkList, setPpkList] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchPpk = async () => {
-      const token = localStorage.getItem("authToken");
-      try {
-        const response = await fetch('/api/users/role/PPK', { 
-          headers: { Authorization: `Bearer ${token}` } 
-        });
-        if (!response.ok) throw new Error("Gagal memuat daftar PPK.");
-        const data = await response.json();
-        setPpkList(data);
-      } catch (error) {
-        toast.error(error.message);
-      }
-    };
-    fetchPpk();
-  }, []);
 
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-  
-  const handlePpkChange = (value) => {
-    setFormData((prev) => ({...prev, ppk_id: value}));
-  };
 
   const handleDetailChange = (index, e) => {
     const { name, value } = e.target;
     const newDetails = [...details];
-    newDetails[index][name] = value;
+
+    if (name === 'harga_satuan') {
+        const numericValue = value.replace(/[^0-9]/g, '');
+        newDetails[index][name] = numericValue;
+    } else {
+        newDetails[index][name] = value;
+    }
+
     setDetails(newDetails);
   };
 
@@ -65,13 +69,17 @@ export function TambahPengadaan() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.ppk_id) {
-        toast.error("Silakan pilih PPK terlebih dahulu.");
-        return;
-    }
     setLoading(true);
     const token = localStorage.getItem("authToken");
-    const payload = { ...formData, details };
+    
+    const payload = {
+        ...formData,
+        details: details.map(d => ({
+            ...d,
+            harga_satuan: unformatRupiah(d.harga_satuan)
+        }))
+    };
+
     const toastId = toast.loading('Mengirim usulan...');
 
     try {
@@ -103,17 +111,10 @@ export function TambahPengadaan() {
           <CardBody className="p-6">
             <Typography variant="h6" color="blue-gray" className="mb-4">Informasi Usulan</Typography>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              <Input label="Program*" name="program" onChange={handleHeaderChange} required disabled={loading} />
-              <Input label="Kegiatan*" name="kegiatan" onChange={handleHeaderChange} required disabled={loading} />
-              <Input label="Output*" name="output" onChange={handleHeaderChange} required disabled={loading} />
-              <Input label="Rekening Belanja (Opsional)" name="rekening_belanja" onChange={handleHeaderChange} disabled={loading} />
-              <div className="lg:col-span-2">
-                <Select label="Pilih PPK (Pejabat Pembuat Komitmen)*" name="ppk_id" onChange={handlePpkChange} required disabled={loading}>
-                  {ppkList.map((ppk) => (
-                    <Option key={ppk.id} value={String(ppk.id)}>{ppk.nama}</Option>
-                  ))}
-                </Select>
-              </div>
+              <Input label="Program" name="program" onChange={handleHeaderChange} required disabled={loading} />
+              <Input label="Kegiatan" name="kegiatan" onChange={handleHeaderChange} required disabled={loading} />
+              <Input label="Output" name="output" onChange={handleHeaderChange} required disabled={loading} />
+              <Input label="Rekening Belanja" name="rekening_belanja" onChange={handleHeaderChange} disabled={loading} />
             </div>
 
             <Typography variant="h6" color="blue-gray" className="mb-4">Detail Barang Usulan</Typography>
@@ -123,7 +124,7 @@ export function TambahPengadaan() {
                   <Input containerProps={{className: "min-w-[200px] flex-1"}} label="Nama Barang" name="nama_barang_usulan" value={item.nama_barang_usulan} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
                   <Input containerProps={{className: "w-20"}} type="number" label="Jumlah" name="jumlah" value={item.jumlah} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
                   <Input containerProps={{className: "w-24"}} label="Satuan" name="satuan" value={item.satuan} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
-                  <Input containerProps={{className: "min-w-[150px] flex-1"}} type="number" label="Harga Satuan (Rp)" name="harga_satuan" value={item.harga_satuan} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
+                  <Input containerProps={{className: "min-w-[150px] flex-1"}} type="text" label="Harga Satuan (Rp)" name="harga_satuan" value={formatRupiah(item.harga_satuan)} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
                   <Input containerProps={{className: "min-w-[150px] flex-1"}} label="Jenis Belanja" name="jenis_belanja" value={item.jenis_belanja} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
                   <Textarea containerProps={{className: "min-w-[200px] flex-1"}} label="Spesifikasi" name="spesifikasi_usulan" value={item.spesifikasi_usulan} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
                   {details.length > 1 && (

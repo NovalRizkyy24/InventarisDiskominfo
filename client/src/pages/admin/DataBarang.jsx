@@ -19,7 +19,6 @@ import { ConfirmationModal } from "@/widgets/layout";
 import { useAuth } from "@/hooks/useAuth";
 import { EyeIcon, MapPinIcon } from "@heroicons/react/24/solid"; 
 
-// Fungsi helper untuk menentukan warna status
 const getStatusColor = (status) => {
   switch (status) {
     case 'Menunggu Validasi': return 'orange';
@@ -42,7 +41,7 @@ export function DataBarang() {
   const API_URL = "/api/barang";
 
   const fetchBarang = async () => {
-    if (!user) return; // Jangan fetch jika user belum ter-load
+    if (!user) return; 
     const token = localStorage.getItem("authToken");
     try {
       const response = await fetch(API_URL, {
@@ -51,7 +50,6 @@ export function DataBarang() {
       if (!response.ok) throw new Error("Gagal mengambil data barang");
       let data = await response.json();
 
-      // Aturan 1: Filter data barang berdasarkan peran pengguna
       const rolesAllowedToSeeValidation = ['Admin', 'Pengurus Barang', 'Penata Usaha Barang'];
       if (!rolesAllowedToSeeValidation.includes(user.role)) {
         data = data.filter(item => item.status !== 'Menunggu Validasi');
@@ -65,7 +63,7 @@ export function DataBarang() {
 
   useEffect(() => {
     fetchBarang();
-  }, [user]); // Jalankan ulang fetchBarang jika objek user berubah
+  }, [user]); 
 
   const confirmDelete = async () => {
     if (!itemToDelete) return;
@@ -78,7 +76,7 @@ export function DataBarang() {
       if (!response.ok) throw new Error("Gagal menghapus barang");
       setIsModalOpen(false);
       setItemToDelete(null);
-      await fetchBarang(); // Muat ulang data setelah hapus
+      await fetchBarang(); 
     } catch (error) {
       console.error(error);
       setIsModalOpen(false);
@@ -90,7 +88,6 @@ export function DataBarang() {
     setIsModalOpen(true);
   };
 
-  // Logika hak akses berdasarkan peran
   const canAdd = user && (user.role === 'Admin' || user.role === 'Pengurus Barang');
   const canEditOrDelete = user && user.role === 'Admin';
   const canManageLocation = user && (user.role === 'Admin' || user.role === 'Pengurus Barang');
@@ -147,7 +144,11 @@ export function DataBarang() {
                       <td className="py-3 px-5 border-b border-blue-gray-50">
                         <div className="flex gap-1">
                           <Tooltip content="Lihat Detail">
-                            <Link to={`/admin/detail-barang/${item.id}`}><IconButton variant="text"><EyeIcon className="h-4 w-4 text-blue-gray-500" /></IconButton></Link>
+                            <Link to={`/${layout}/detail-barang/${item.id}`}>
+                              <IconButton variant="text">
+                                <EyeIcon className="h-4 w-4 text-blue-gray-500" />
+                              </IconButton>
+                            </Link>
                           </Tooltip>
                           
                           {/* === TOMBOL ATUR LOKASI BARU === */}
@@ -161,7 +162,6 @@ export function DataBarang() {
 
                           {canManageLocation && (
                             <Tooltip content="Atur Lokasi">
-                              {/* Ganti link agar dinamis sesuai layout peran */}
                               <Link to={`/${layout}/atur-lokasi/${item.id}`}>
                                 <IconButton variant="text"><MapPinIcon className="h-4 w-4 text-green-500" /></IconButton>
                               </Link>
@@ -177,7 +177,6 @@ export function DataBarang() {
                           {canEditOrDelete && (
                             <>
                               <Tooltip content="Edit Barang">
-                                {/* Ganti link agar dinamis sesuai layout peran */}
                                 <Link to={`/${layout}/edit-barang/${item.id}`}>
                                   <IconButton variant="text"><PencilIcon className="h-4 w-4" /></IconButton>
                                 </Link>

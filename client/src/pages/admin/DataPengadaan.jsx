@@ -11,7 +11,6 @@ import {
 import { PlusIcon } from "@heroicons/react/24/solid";
 import { useAuth } from "@/hooks/useAuth"; 
 
-// Fungsi untuk memformat tanggal
 const formatDate = (dateString) => {
   if (!dateString) return "-";
   return new Date(dateString).toLocaleDateString("id-ID", {
@@ -19,7 +18,6 @@ const formatDate = (dateString) => {
   });
 };
 
-// Fungsi untuk warna status
 const getStatusColor = (status) => {
   switch (status) {
     case 'Diajukan': return 'blue';
@@ -75,7 +73,7 @@ export function DataPengadaan() {
           <table className="w-full min-w-[640px] table-auto">
             <thead>
               <tr>
-                {["No", "Nomor Usulan", "Tanggal", "Program", "Pengusul", "Status", "Aksi"].map((el) => (
+                {["No", "Nomor Usulan", "Tanggal Usalan", "Program", "Pengusul", "Status", "Aksi"].map((el) => (
                   <th key={el} className="border-b border-blue-gray-50 py-3 px-5 text-left">
                     <Typography variant="small" className="text-[11px] font-bold uppercase text-blue-gray-400">{el}</Typography>
                   </th>

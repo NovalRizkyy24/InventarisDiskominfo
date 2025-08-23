@@ -5,10 +5,10 @@ const puppeteer = require('puppeteer');
 // @route   POST /api/peminjaman
 // @access  Private
 const createPeminjaman = async (req, res) => {
-    const { barang_id, tanggal_mulai_pinjam, tanggal_rencana_kembali, keperluan } = req.body;
+    const { barang_id, tanggal_mulai_pinjam, tanggal_rencana_kembali, keperluan, jenis } = req.body;
     const user_peminjam_id = req.user.id;
 
-    if (!barang_id || !tanggal_mulai_pinjam || !tanggal_rencana_kembali) {
+    if (!barang_id || !tanggal_mulai_pinjam || !tanggal_rencana_kembali || !jenis) {
         return res.status(400).json({ message: 'Data peminjaman tidak lengkap.' });
     }
 
@@ -22,10 +22,10 @@ const createPeminjaman = async (req, res) => {
         }
 
         const query = `
-            INSERT INTO peminjaman (barang_id, user_peminjam_id, tanggal_mulai_pinjam, tanggal_rencana_kembali, keperluan)
-            VALUES ($1, $2, $3, $4, $5) RETURNING *;
+            INSERT INTO peminjaman (barang_id, user_peminjam_id, tanggal_mulai_pinjam, tanggal_rencana_kembali, keperluan, jenis)
+            VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
         `;
-        const values = [barang_id, user_peminjam_id, tanggal_mulai_pinjam, tanggal_rencana_kembali, keperluan];
+        const values = [barang_id, user_peminjam_id, tanggal_mulai_pinjam, tanggal_rencana_kembali, keperluan, jenis];
         const { rows } = await client.query(query, values);
 
         await client.query('COMMIT');
@@ -62,6 +62,7 @@ const getAllPeminjaman = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
 
 // @desc    Update status of a peminjaman request
 // @route   PUT /api/peminjaman/:id/status
@@ -118,7 +119,9 @@ const getPeminjamanById = async (req, res) => {
     const { id } = req.params;
     try {
         const query = `
-            SELECT p.*, b.nama_barang, b.kode_barang, u.nama as nama_peminjam
+            SELECT p.*, 
+                   b.nama_barang, b.kode_barang, b.merk, b.tipe, b.nilai_perolehan,
+                   u.nama as nama_peminjam, u.nip as nip_peminjam, u.jabatan as jabatan_peminjam
             FROM peminjaman p
             JOIN barang b ON p.barang_id = b.id
             JOIN users u ON p.user_peminjam_id = u.id
@@ -147,6 +150,7 @@ const getPeminjamanByPeminjam = async (req, res) => {
             SELECT 
                 p.id,
                 p.status,
+                p.jenis,
                 p.tanggal_mulai_pinjam,
                 p.tanggal_rencana_kembali,
                 b.nama_barang, 
@@ -159,8 +163,7 @@ const getPeminjamanByPeminjam = async (req, res) => {
         `;
         const { rows } = await pool.query(query, [user_peminjam_id]);
         res.json(rows);
-    } catch (error) {
-        // Baris ini akan menampilkan error detail di konsol server Anda
+    } catch (error) { 
         console.error('Error detail saat mengambil data peminjaman:', error); 
         res.status(500).json({ message: 'Terjadi kesalahan pada server' });
     }
@@ -173,10 +176,9 @@ const getPeminjamanByPeminjam = async (req, res) => {
  */
 const deletePeminjaman = async (req, res) => {
     const { id: peminjamanId } = req.params;
-    const { id: userId } = req.user; // Ambil ID pengguna dari token
+    const { id: userId } = req.user;
 
     try {
-        // 1. Ambil data peminjaman untuk verifikasi
         const peminjamanQuery = await pool.query(
             'SELECT user_peminjam_id, status FROM peminjaman WHERE id = $1',
             [peminjamanId]
@@ -188,17 +190,14 @@ const deletePeminjaman = async (req, res) => {
 
         const peminjaman = peminjamanQuery.rows[0];
 
-        // 2. Verifikasi: Hanya peminjam yang bisa menghapus
         if (peminjaman.user_peminjam_id !== userId) {
             return res.status(403).json({ message: 'Anda tidak memiliki izin untuk menghapus pengajuan ini.' });
         }
 
-        // 3. Verifikasi: Hanya bisa dihapus jika status masih 'Diajukan'
         if (peminjaman.status !== 'Diajukan') {
             return res.status(400).json({ message: 'Pengajuan yang sudah diproses tidak dapat dihapus.' });
         }
 
-        // 4. Lakukan penghapusan
         await pool.query('DELETE FROM peminjaman WHERE id = $1', [peminjamanId]);
 
         res.json({ message: 'Pengajuan peminjaman berhasil dihapus.' });
@@ -251,11 +250,13 @@ const savePihakKedua = async (req, res) => {
 const downloadBeritaAcara = async (req, res) => {
     const { id } = req.params;
     try {
-        // 1. Ambil data peminjaman yang sudah ada di database
         const query = `
-            SELECT p.*, b.nama_barang, b.merk, b.tipe, b.nilai_perolehan
+            SELECT p.*, 
+                   b.nama_barang, b.merk, b.tipe, b.nilai_perolehan,
+                   u.nama as nama_peminjam, u.nip as nip_peminjam, u.jabatan as jabatan_peminjam
             FROM peminjaman p
             JOIN barang b ON p.barang_id = b.id
+            JOIN users u ON p.user_peminjam_id = u.id
             WHERE p.id = $1;
         `;
         const { rows } = await pool.query(query, [id]);
@@ -264,12 +265,24 @@ const downloadBeritaAcara = async (req, res) => {
         }
         const data = rows[0];
 
-        // Validasi jika data pihak kedua belum disimpan
-        if (!data.nama_pihak_kedua || !data.nip_pihak_kedua || !data.jabatan_pihak_kedua) {
-            return res.status(400).json({ message: 'Data Pihak Kedua belum disimpan. Harap simpan terlebih dahulu.' });
+        let pihakKedua = {};
+        if (data.jenis === 'Internal') {
+            pihakKedua = {
+                nama: data.nama_peminjam,
+                nip: data.nip_peminjam,
+                jabatan: data.jabatan_peminjam
+            };
+        } else { // Eksternal
+            if (!data.nama_pihak_kedua || !data.nip_pihak_kedua || !data.jabatan_pihak_kedua) {
+                return res.status(400).json({ message: 'Data Pihak Kedua (eksternal) belum disimpan.' });
+            }
+            pihakKedua = {
+                nama: data.nama_pihak_kedua,
+                nip: data.nip_pihak_kedua,
+                jabatan: data.jabatan_pihak_kedua
+            };
         }
 
-        // 2. Proses pembuatan PDF (Template HTML tidak berubah)
         const formatDate = (date) => new Date(date).toLocaleDateString('id-ID', {
             weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
         });
@@ -280,9 +293,8 @@ const downloadBeritaAcara = async (req, res) => {
         <html>
             <head>
                 <style>
-                    /* Margin di CSS diatur ke nilai yang lebih kecil */
                     body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; margin: 0; } 
-                    .page-container { padding: 1cm 1cm; } /* Kontrol padding di sini */
+                    .page-container { padding: 1cm 1cm; }
                     p { line-height: 1.5; text-align: justify; margin: 0; }
                     .header { text-align: center; font-weight: bold; }
                     .underline { text-decoration: underline; }
@@ -311,9 +323,9 @@ const downloadBeritaAcara = async (req, res) => {
                         <tr><td>Jabatan</td><td>:</td><td>Kepala Dinas Komunikasi dan Informatika</td></tr>
                         <tr><td colspan="3" style="padding-top: 5px;">Yang selanjutnya disebut <b>PIHAK PERTAMA</b>.</td></tr>
                         <tr><td colspan="3" style="height: 1em;">&nbsp;</td></tr>
-                        <tr><td>Nama</td><td>:</td><td><b>${data.nama_pihak_kedua}</b></td></tr>
-                        <tr><td>NIP</td><td>:</td><td>${data.nip_pihak_kedua}</td></tr>
-                        <tr><td>Jabatan</td><td>:</td><td>${data.jabatan_pihak_kedua}</td></tr>
+                        <tr><td>Nama</td><td>:</td><td><b>${pihakKedua.nama || ''}</b></td></tr>
+                        <tr><td>NIP</td><td>:</td><td>${pihakKedua.nip || ''}</td></tr>
+                        <tr><td>Jabatan</td><td>:</td><td>${pihakKedua.jabatan || ''}</td></tr>
                         <tr><td colspan="3" style="padding-top: 5px;">Yang selanjutnya disebut <b>PIHAK KEDUA</b>.</td></tr>
                     </table>
 
@@ -364,10 +376,10 @@ const downloadBeritaAcara = async (req, res) => {
                             </td>
                             <td>
                                 <div>PIHAK KEDUA,</div>
-                                <div>${data.jabatan_pihak_kedua}</div>
+                                <div>${pihakKedua.jabatan || ''}</div>
                                 <div style="height: 80px;"></div>
-                                <div class="underline"><b>${data.nama_pihak_kedua}</b></div>
-                                <div>NIP. ${data.nip_pihak_kedua}</div>
+                                <div class="underline"><b>${pihakKedua.nama || ''}</b></div>
+                                <div>NIP. ${pihakKedua.nip || ''}</div>
                             </td>
                         </tr>
                     </table>
@@ -395,6 +407,34 @@ const downloadBeritaAcara = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get validation logs for a specific peminjaman request
+ * @route   GET /api/peminjaman/:id/logs
+ * @access  Private
+ */
+const getPeminjamanLogs = async (req, res) => {
+    const { id: peminjamanId } = req.params;
+    try {
+        const query = `
+            SELECT 
+                log.waktu_validasi,
+                log.status_sebelum,
+                log.status_sesudah,
+                log.catatan,
+                u.nama AS nama_validator
+            FROM log_validasi log
+            JOIN users u ON log.user_validator_id = u.id
+            WHERE log.peminjaman_id = $1
+            ORDER BY log.waktu_validasi ASC;
+        `;
+        const { rows } = await pool.query(query, [peminjamanId]);
+        res.json(rows);
+    } catch (error) {
+        console.error('Error saat mengambil log validasi peminjaman:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    }
+};
+
 module.exports = {
     createPeminjaman,
     getAllPeminjaman,
@@ -404,4 +444,5 @@ module.exports = {
     deletePeminjaman,
     savePihakKedua,
     downloadBeritaAcara,
+    getPeminjamanLogs,
 };

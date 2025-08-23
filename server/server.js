@@ -14,6 +14,7 @@ const peminjamanRoutes = require('./routes/peminjamanRoutes');
 const penghapusanRoutes = require('./routes/penghapusanRoutes');
 const kategoriRoutes = require('./routes/kategoriRoutes');
 const lokasiRoutes = require('./routes/lokasiRoutes');
+const laporanRoutes = require('./routes/laporanRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,6 +30,7 @@ app.use('/api', peminjamanRoutes);
 app.use('/api', penghapusanRoutes);
 app.use('/api', kategoriRoutes);
 app.use('/api', lokasiRoutes);
+app.use('/api', laporanRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server berjalan di http://localhost:${PORT}`);

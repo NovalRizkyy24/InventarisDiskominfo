@@ -11,9 +11,24 @@ import {
   Select,
   Option,
 } from "@material-tailwind/react";
-import toast from 'react-hot-toast'; // 1. Impor toast
+import toast from 'react-hot-toast';
 
-// Fungsi untuk memformat tanggal ke YYYY-MM-DD
+const formatRupiah = (angka) => {
+  if (!angka) return "";
+  const number_string = angka.toString().replace(/[^,\d]/g, '');
+  const split = number_string.split(',');
+  const sisa = split[0].length % 3;
+  let rupiah = split[0].substr(0, sisa);
+  const ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+  if (ribuan) {
+    const separator = sisa ? '.' : '';
+    rupiah += separator + ribuan.join('.');
+  }
+
+  return rupiah;
+};
+
 const formatDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -35,7 +50,7 @@ export function EditBarang() {
     status: "",
   });
   const [kategoriList, setKategoriList] = useState([]);
-  const [loading, setLoading] = useState(false); // 2. Tambahkan state loading
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -68,7 +83,12 @@ export function EditBarang() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'nilai_perolehan') {
+        const numericValue = value.replace(/[^0-9]/g, '');
+        setFormData((prev) => ({ ...prev, [name]: numericValue }));
+    } else {
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleKategoriChange = (value) => {
@@ -81,7 +101,7 @@ export function EditBarang() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true); // 3. Atur loading
+    setLoading(true);
     const token = localStorage.getItem("authToken");
     const toastId = toast.loading('Memperbarui data...');
 
@@ -102,7 +122,7 @@ export function EditBarang() {
 
     } catch (err) {
       toast.error(err.message, { id: toastId });
-      setLoading(false); // 4. Atur loading false jika gagal
+      setLoading(false);
     }
   };
 
@@ -126,7 +146,7 @@ export function EditBarang() {
               <Input label="Tipe" name="tipe" value={formData.tipe || ''} onChange={handleChange} />
               <Input label="Sumber Dana" name="sumber_dana" value={formData.sumber_dana || ''} onChange={handleChange} />
               <Input type="date" label="Tanggal Perolehan*" name="tanggal_perolehan" value={formData.tanggal_perolehan} onChange={handleChange} required />
-              <Input type="number" label="Nilai Perolehan (Rp)*" name="nilai_perolehan" value={formData.nilai_perolehan || ''} onChange={handleChange} required />
+              <Input type="text" label="Nilai Perolehan (Rp)*" name="nilai_perolehan" value={formatRupiah(formData.nilai_perolehan)} onChange={handleChange} required />
               <Select label="Status*" name="status" value={formData.status} onChange={handleStatusChange}>
                 <Option value="Tersedia">Tersedia</Option>
                 <Option value="Dipinjam">Dipinjam</Option>
@@ -138,7 +158,6 @@ export function EditBarang() {
           </CardBody>
           <CardFooter className="pt-0 p-6 flex justify-end gap-2">
              <Button variant="text" color="blue-gray" onClick={() => navigate("/admin/data-barang")} disabled={loading}>Batal</Button>
-            {/* 5. Terapkan state loading ke tombol */}
             <Button variant="gradient" type="submit" disabled={loading}>
               {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
             </Button>

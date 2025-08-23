@@ -7,7 +7,8 @@ const {
     updateBarang, 
     deleteBarang,
     validateBarang,
-    regenerateQrCode  
+    regenerateQrCode,
+    getBarangLogs, 
 } = require('../controllers/barangController');
 const verifyToken = require('../middleware/verifyToken');
 
@@ -19,6 +20,8 @@ router.route('/barang')
     .post(createBarang);
 
 router.put('/barang/:id/validate', validateBarang);
+
+router.get('/barang/:id/logs', getBarangLogs);
 
 router.route('/barang/:id')
     .get(getBarangById)

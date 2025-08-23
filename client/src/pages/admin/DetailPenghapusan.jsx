@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardHeader, CardBody, Typography, Button, Chip } from "@material-tailwind/react";
 import { useAuth } from "@/hooks/useAuth";
+import { ConfirmationProses } from "@/widgets/layout";
+import toast from "react-hot-toast";
 
 const formatDate = (dateString) => new Date(dateString).toLocaleDateString("id-ID");
 const getStatusColor = (status) => ({'Diajukan': 'blue', 'Divalidasi Pengurus Barang': 'light-blue', 'Divalidasi Penatausahaan': 'cyan', 'Disetujui Kepala Dinas': 'green', 'Ditolak': 'red'})[status] || 'gray';
@@ -11,6 +13,14 @@ export function DetailPenghapusan() {
   const { user } = useAuth();
   const [usulan, setUsulan] = useState(null);
   const [error, setError] = useState("");
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    action: null,
+    actionText: "Ya, Lanjutkan",
+    actionColor: "green",
+  });
 
   const fetchDetail = async () => {
     const token = localStorage.getItem("authToken");
@@ -20,9 +30,10 @@ export function DetailPenghapusan() {
   };
 
   useEffect(() => { fetchDetail(); }, [id]);
-  
+
   const handleUpdateStatus = async (status_baru) => {
     const token = localStorage.getItem("authToken");
+    const toastId = toast.loading('Memperbarui status...');
     try {
       const response = await fetch(`/api/penghapusan/${id}/status`, {
         method: 'PUT',
@@ -30,10 +41,30 @@ export function DetailPenghapusan() {
         body: JSON.stringify({ status_baru }),
       });
       if (!response.ok) throw new Error((await response.json()).message);
+      toast.success("Status berhasil diperbarui.", { id: toastId });
       fetchDetail();
     } catch(err) {
+      toast.error(err.message, { id: toastId });
       setError(err.message);
     }
+  };
+
+  const openConfirmModal = (action, title, message, actionText, actionColor) => {
+    setConfirmState({
+      isOpen: true,
+      title,
+      message,
+      action,
+      actionText,
+      actionColor,
+    });
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmState.action) {
+      confirmState.action();
+    }
+    setConfirmState({ isOpen: false, action: null });
   };
 
   const ActionButtons = () => {
@@ -48,12 +79,13 @@ export function DetailPenghapusan() {
     };
 
     if (actions[status] && role === actions[status].role) {
+      const actionType = status === 'Divalidasi Penatausahaan' ? 'Setujui' : 'Validasi';
       return (
         <div className="flex gap-2">
-          <Button color="green" onClick={() => handleUpdateStatus(actions[status].nextStatus)}>
-            {status === 'Divalidasi Penatausahaan' ? 'Setujui' : 'Validasi'}
+          <Button color="green" onClick={() => openConfirmModal(() => handleUpdateStatus(actions[status].nextStatus), `Konfirmasi ${actionType}`, `Anda yakin ingin ${actionType.toLowerCase()} usulan penghapusan ini?`, `Ya, ${actionType}`, 'green')}>
+            {actionType}
           </Button>
-          <Button color="red" onClick={() => handleUpdateStatus('Ditolak')}>Tolak</Button>
+          <Button color="red" onClick={() => openConfirmModal(() => handleUpdateStatus('Ditolak'), 'Konfirmasi Penolakan', 'Anda yakin ingin menolak usulan penghapusan ini?', 'Ya, Tolak', 'red')}>Tolak</Button>
         </div>
       );
     }
@@ -67,7 +99,7 @@ export function DetailPenghapusan() {
       <Card>
         <CardHeader variant="gradient" color="gray" className="p-6 flex justify-between items-center">
           <Typography variant="h6" color="white">Detail Usulan Penghapusan: {usulan.nama_barang}</Typography>
-          <Chip variant="ghost" color={getStatusColor(usulan.status)} value={usulan.status} />
+          <Chip variant="gradient" color={getStatusColor(usulan.status)} value={usulan.status} />
         </CardHeader>
         <CardBody>
           {error && <Typography color="red" className="mb-4 text-center">{error}</Typography>}
@@ -83,6 +115,16 @@ export function DetailPenghapusan() {
           <CardHeader variant="gradient" color="gray" className="p-6"><Typography variant="h6" color="white">Aksi</Typography></CardHeader>
           <CardBody><ActionButtons /></CardBody>
       </Card>
+
+      <ConfirmationProses
+        open={confirmState.isOpen}
+        onClose={() => setConfirmState({ isOpen: false, action: null })}
+        onConfirm={handleConfirmAction}
+        title={confirmState.title}
+        message={confirmState.message}
+        actionText={confirmState.actionText}
+        actionColor={confirmState.actionColor}
+      />
     </div>
   );
 }

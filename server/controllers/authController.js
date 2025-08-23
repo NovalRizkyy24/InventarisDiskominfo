@@ -154,6 +154,20 @@ const createUser = async (req, res) => {
   }
 };
 
+// @desc    Get users by role
+// @route   GET /api/users/role/:role
+// @access  Private
+const getUsersByRole = async (req, res) => {
+  const { role } = req.params;
+  try {
+    const { rows } = await pool.query('SELECT id, nama FROM users WHERE role = $1 ORDER BY nama ASC', [role]);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error saat mengambil pengguna berdasarkan peran:', error);
+    res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+  }
+};
+
 module.exports = {
   loginUser,
   getAllUsers,
@@ -161,4 +175,5 @@ module.exports = {
   getUserById,
   updateUser,
   createUser, 
+  getUsersByRole,
 };

@@ -17,4 +17,5 @@ export * from "./DataKategori";
 export * from "./TambahKategori";
 export * from "./EditKategori"; 
 export * from "./DetailBarang";
-export * from "./AturLokasi"
+export * from "./AturLokasi";
+export * from "./Laporan";

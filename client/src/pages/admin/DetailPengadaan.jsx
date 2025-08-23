@@ -11,23 +11,42 @@ import {
 } from "@material-tailwind/react";
 import { useAuth } from "@/hooks/useAuth";
 import toast from 'react-hot-toast';
-import { ConfirmationModal } from "@/widgets/layout";
+import { ConfirmationModal, ConfirmationProses } from "@/widgets/layout";
 
-// Helper functions
 const formatDate = (dateString) => new Date(dateString).toLocaleDateString("id-ID", { year: 'numeric', month: 'long', day: 'numeric' });
-const formatDateTime = (dateString) => new Date(dateString).toLocaleDateString("id-ID", { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const formatDateTime = (dateString) => {
+    const options = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    };
+    return new Date(dateString)
+        .toLocaleString("id-ID", options)
+        .replace(/\./g, ':')
+        .replace('pukul', 'Pukul');
+};
 const getStatusColor = (status) => ({'Diajukan': 'blue', 'Divalidasi Pengurus Barang': 'light-blue', 'Divalidasi Penatausahaan': 'cyan', 'Disetujui Kepala Dinas': 'teal', 'Selesai': 'green', 'Ditolak': 'red'})[status] || 'gray';
 
 export function DetailPengadaan() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
-
     const [usulan, setUsulan] = useState(null);
     const [logData, setLogData] = useState([]);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [confirmState, setConfirmState] = useState({
+        isOpen: false,
+        title: "",
+        message: "",
+        action: null,
+        actionText: "Ya, Lanjutkan",
+        actionColor: "green",
+    });
 
     const fetchDetailAndLogs = async () => {
         setLoading(true);
@@ -92,25 +111,64 @@ export function DetailPengadaan() {
         }
     };
 
+    const openConfirmModal = (action, title, message, actionText, actionColor) => {
+        setConfirmState({
+            isOpen: true,
+            title,
+            message,
+            action,
+            actionText,
+            actionColor,
+        });
+    };
+
+    const handleConfirmAction = () => {
+        if (confirmState.action) {
+            confirmState.action();
+        }
+        setConfirmState({ isOpen: false, action: null });
+    };
+
     const ActionButtons = () => {
         if (!usulan || !user) return null;
         const { status, user_pengusul_id } = usulan;
         const { role, id: userId } = user;
 
+        const handleValidationClick = (newStatus, type = 'validasi') => {
+            const actionText = type === 'setujui' ? 'Ya, Setujui' : 'Ya, Validasi';
+            openConfirmModal(
+                () => handleUpdateStatus(newStatus),
+                `Konfirmasi ${type === 'setujui' ? 'Persetujuan' : 'Validasi'}`,
+                `Apakah Anda yakin ingin ${type} usulan ini? Proses tidak dapat dibatalkan.`,
+                actionText,
+                "green"
+            );
+        };
+    
+        const handleRejectClick = () => {
+            openConfirmModal(
+                () => handleUpdateStatus('Ditolak'),
+                'Konfirmasi Penolakan',
+                'Apakah Anda yakin ingin menolak usulan ini? Proses tidak dapat dibatalkan.',
+                'Ya, Tolak',
+                "red"
+            );
+        };
+
         if (status === 'Diajukan' && user_pengusul_id === userId) {
             return ( <Button color="red" onClick={() => setIsDeleteModalOpen(true)}>Hapus Usulan</Button> );
         }
         if (status === 'Diajukan' && role === 'Pengurus Barang') {
-            return ( <div className="flex gap-2"> <Button color="green" onClick={() => handleUpdateStatus('Divalidasi Pengurus Barang')}>Validasi</Button> <Button color="red" onClick={() => handleUpdateStatus('Ditolak')}>Tolak</Button> </div> );
+            return ( <div className="flex gap-2"> <Button color="green" onClick={() => handleValidationClick('Divalidasi Pengurus Barang')}>Validasi</Button> <Button color="red" onClick={handleRejectClick}>Tolak</Button> </div> );
         }
         if (status === 'Divalidasi Pengurus Barang' && role === 'Penata Usaha Barang') {
-            return ( <div className="flex gap-2"> <Button color="green" onClick={() => handleUpdateStatus('Divalidasi Penatausahaan')}>Validasi</Button> <Button color="red" onClick={() => handleUpdateStatus('Ditolak')}>Tolak</Button> </div> );
+            return ( <div className="flex gap-2"> <Button color="green" onClick={() => handleValidationClick('Divalidasi Penatausahaan')}>Validasi</Button> <Button color="red" onClick={handleRejectClick}>Tolak</Button> </div> );
         }
         if (status === 'Divalidasi Penatausahaan' && role === 'Kepala Dinas') {
-            return ( <div className="flex gap-2"> <Button color="green" onClick={() => handleUpdateStatus('Disetujui Kepala Dinas')}>Setujui</Button> <Button color="red" onClick={() => handleUpdateStatus('Ditolak')}>Tolak</Button> </div> );
+            return ( <div className="flex gap-2"> <Button color="green" onClick={() => handleValidationClick('Disetujui Kepala Dinas', 'setujui')}>Setujui</Button> <Button color="red" onClick={handleRejectClick}>Tolak</Button> </div> );
         }
         if (status === 'Disetujui Kepala Dinas' && role === 'Admin') {
-            return <Button color="green" onClick={() => handleUpdateStatus('Selesai')}>Tandai Selesai</Button>;
+            return <Button color="green" onClick={() => openConfirmModal(() => handleUpdateStatus('Selesai'), 'Konfirmasi Selesai', 'Apakah Anda yakin ingin menandai usulan ini sebagai "Selesai"?', 'Ya, Tandai Selesai', 'green')}>Tandai Selesai</Button>;
         }
         return <Typography variant="small" color="blue-gray">Tidak ada aksi yang tersedia untuk peran Anda.</Typography>;
     };
@@ -153,7 +211,8 @@ export function DetailPengadaan() {
                         <Typography variant="h6" color="white">Rincian Proses Pengadaan Barang</Typography>
                         <Typography variant="small" color="white" className="opacity-80">{usulan.nomor_usulan}</Typography>
                     </div>
-                    <Chip variant="ghost" color={getStatusColor(usulan.status)} value={usulan.status} />
+                    {/* --- PERBAIKAN DI SINI --- */}
+                    <Chip variant="gradient" color={getStatusColor(usulan.status)} value={usulan.status} />
                 </CardHeader>
                 <CardBody>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -241,6 +300,15 @@ export function DetailPengadaan() {
                 onConfirm={handleDelete}
                 title="Konfirmasi Hapus Usulan"
                 message="Anda yakin ingin menghapus usulan pengadaan ini? Aksi ini tidak dapat dibatalkan."
+            />
+            <ConfirmationProses
+                open={confirmState.isOpen}
+                onClose={() => setConfirmState({ isOpen: false, action: null })}
+                onConfirm={handleConfirmAction}
+                title={confirmState.title}
+                message={confirmState.message}
+                actionText={confirmState.actionText}
+                actionColor={confirmState.actionColor}
             />
         </div>
     );

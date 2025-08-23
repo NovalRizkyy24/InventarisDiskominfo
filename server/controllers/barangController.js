@@ -246,6 +246,34 @@ const regenerateQrCode = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get validation logs for a specific barang
+ * @route   GET /api/barang/:id/logs
+ * @access  Private
+ */
+const getBarangLogs = async (req, res) => {
+    const { id: barangId } = req.params;
+    try {
+        const query = `
+            SELECT 
+                log.waktu_validasi,
+                log.status_sebelum,
+                log.status_sesudah,
+                log.catatan,
+                u.nama AS nama_validator
+            FROM log_validasi log
+            JOIN users u ON log.user_validator_id = u.id
+            WHERE log.barang_id = $1
+            ORDER BY log.waktu_validasi ASC;
+        `;
+        const { rows } = await pool.query(query, [barangId]);
+        res.json(rows);
+    } catch (error) {
+        console.error('Error saat mengambil log validasi barang:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    }
+};
+
 module.exports = {
   getAllBarang,
   getBarangById,
@@ -254,4 +282,5 @@ module.exports = {
   deleteBarang,
   validateBarang,
   regenerateQrCode,
+  getBarangLogs,
 };

@@ -5,7 +5,8 @@ const { loginUser,
         deleteUser, 
         getUserById, 
         updateUser,
-        createUser 
+        createUser,
+        getUsersByRole 
     } = require('../controllers/authController');
     
 const verifyToken = require('../middleware/verifyToken'); // Impor middleware
@@ -14,6 +15,8 @@ router.post('/login', loginUser);
 
 // Rute untuk mendapatkan semua pengguna (dilindungi)
 router.get('/users', verifyToken, getAllUsers);
+
+router.get('/users/role/:role', verifyToken, getUsersByRole);
 
 // Rute untuk menghapus pengguna (dilindungi)
 router.delete('/users/:id', verifyToken, deleteUser);
@@ -26,5 +29,6 @@ router.put('/users/:id', verifyToken, updateUser);
 
 // Rute untuk membuat pengguna baru (dilindungi)
 router.post('/users', verifyToken, createUser);
+
 
 module.exports = router;
