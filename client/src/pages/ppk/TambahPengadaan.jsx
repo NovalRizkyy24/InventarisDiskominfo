@@ -5,6 +5,7 @@ import {
 } from "@material-tailwind/react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/solid";
 import toast from 'react-hot-toast';
+import { ConfirmationProses } from "@/widgets/layout"; // Impor komponen popup
 
 const formatRupiah = (angka) => {
   if (!angka) return "";
@@ -38,6 +39,7 @@ export function TambahPengadaan() {
     { nama_barang_usulan: "", jumlah: 1, satuan: "", harga_satuan: 0, spesifikasi_usulan: "", jenis_belanja: "Belanja Modal" },
   ]);
   const [loading, setLoading] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false); // State baru untuk popup
 
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
@@ -67,8 +69,19 @@ export function TambahPengadaan() {
     setDetails(newDetails);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleAjukanClick = (e) => {
+    e.preventDefault(); // Mencegah submit form langsung
+    
+    // Validasi sederhana sebelum membuka popup
+    if (!formData.program || !formData.kegiatan || !formData.output || details.some(d => !d.nama_barang_usulan)) {
+        toast.error("Harap isi semua field yang wajib diisi (*).");
+        return;
+    }
+    setIsConfirmOpen(true); // Buka popup jika validasi lolos
+  };
+
+  const handleSubmit = async () => {
+    setIsConfirmOpen(false); // Tutup popup
     setLoading(true);
     const token = localStorage.getItem("authToken");
     
@@ -102,52 +115,63 @@ export function TambahPengadaan() {
   };
 
   return (
-    <div className="mt-12 mb-8 flex justify-center">
-      <Card className="w-full max-w-6xl">
-        <CardHeader variant="gradient" color="gray" className="mb-4 p-6">
-          <Typography variant="h6" color="white">Formulir Rencana Pengadaan Barang</Typography>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardBody className="p-6">
-            <Typography variant="h6" color="blue-gray" className="mb-4">Informasi Usulan</Typography>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              <Input label="Program" name="program" onChange={handleHeaderChange} required disabled={loading} />
-              <Input label="Kegiatan" name="kegiatan" onChange={handleHeaderChange} required disabled={loading} />
-              <Input label="Output" name="output" onChange={handleHeaderChange} required disabled={loading} />
-              <Input label="Rekening Belanja" name="rekening_belanja" onChange={handleHeaderChange} disabled={loading} />
-            </div>
+    <>
+      <div className="mt-12 mb-8 flex justify-center">
+        <Card className="w-full max-w-6xl">
+          <CardHeader variant="gradient" color="gray" className="mb-4 p-6">
+            <Typography variant="h6" color="white">Formulir Rencana Pengadaan Barang</Typography>
+          </CardHeader>
+          <form>
+            <CardBody className="p-6">
+              <Typography variant="h6" color="blue-gray" className="mb-4">Informasi Usulan</Typography>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <Input label="Program*" name="program" onChange={handleHeaderChange} required disabled={loading} />
+                <Input label="Kegiatan*" name="kegiatan" onChange={handleHeaderChange} required disabled={loading} />
+                <Input label="Output*" name="output" onChange={handleHeaderChange} required disabled={loading} />
+                <Input label="Rekening Belanja" name="rekening_belanja" onChange={handleHeaderChange} disabled={loading} />
+              </div>
 
-            <Typography variant="h6" color="blue-gray" className="mb-4">Detail Barang Usulan</Typography>
-            <div className="flex flex-col gap-4">
-              {details.map((item, index) => (
-                <div key={index} className="flex flex-wrap items-start gap-4 p-4 border rounded-lg">
-                  <Input containerProps={{className: "min-w-[200px] flex-1"}} label="Nama Barang" name="nama_barang_usulan" value={item.nama_barang_usulan} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
-                  <Input containerProps={{className: "w-20"}} type="number" label="Jumlah" name="jumlah" value={item.jumlah} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
-                  <Input containerProps={{className: "w-24"}} label="Satuan" name="satuan" value={item.satuan} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
-                  <Input containerProps={{className: "min-w-[150px] flex-1"}} type="text" label="Harga Satuan (Rp)" name="harga_satuan" value={formatRupiah(item.harga_satuan)} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
-                  <Input containerProps={{className: "min-w-[150px] flex-1"}} label="Jenis Belanja" name="jenis_belanja" value={item.jenis_belanja} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
-                  <Textarea containerProps={{className: "min-w-[200px] flex-1"}} label="Spesifikasi" name="spesifikasi_usulan" value={item.spesifikasi_usulan} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
-                  {details.length > 1 && (
-                    <Button color="red" className="p-2" onClick={() => removeDetailRow(index)} disabled={loading}>
-                      <TrashIcon className="h-5 w-5" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-            <Button color="blue" variant="text" className="mt-4 flex items-center gap-2" onClick={addDetailRow} disabled={loading}>
-              <PlusIcon className="h-5 w-5" /> Tambah Barang
-            </Button>
-          </CardBody>
-          <CardFooter className="pt-4 p-6 flex justify-end gap-2">
-            <Button variant="text" color="blue-gray" onClick={() => navigate(-1)} disabled={loading}>Batal</Button>
-            <Button variant="gradient" type="submit" disabled={loading}>
-              {loading ? 'Mengirim...' : 'Kirim Usulan'}
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
-    </div>
+              <Typography variant="h6" color="blue-gray" className="mb-4">Detail Barang Usulan</Typography>
+              <div className="flex flex-col gap-4">
+                {details.map((item, index) => (
+                  <div key={index} className="flex flex-wrap items-start gap-4 p-4 border rounded-lg">
+                    <Input containerProps={{className: "min-w-[200px] flex-1"}} label="Nama Barang*" name="nama_barang_usulan" value={item.nama_barang_usulan} onChange={(e) => handleDetailChange(index, e)} required disabled={loading} />
+                    <Input containerProps={{className: "w-20"}} type="number" label="Jumlah*" name="jumlah" value={item.jumlah} onChange={(e) => handleDetailChange(index, e)} required disabled={loading} />
+                    <Input containerProps={{className: "w-24"}} label="Satuan*" name="satuan" value={item.satuan} onChange={(e) => handleDetailChange(index, e)} required disabled={loading} />
+                    <Input containerProps={{className: "min-w-[150px] flex-1"}} type="text" label="Harga Satuan (Rp)*" name="harga_satuan" value={formatRupiah(item.harga_satuan)} onChange={(e) => handleDetailChange(index, e)} required disabled={loading} />
+                    <Input containerProps={{className: "min-w-[150px] flex-1"}} label="Jenis Belanja" name="jenis_belanja" value={item.jenis_belanja} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
+                    <Textarea containerProps={{className: "min-w-[200px] flex-1"}} label="Spesifikasi" name="spesifikasi_usulan" value={item.spesifikasi_usulan} onChange={(e) => handleDetailChange(index, e)} disabled={loading} />
+                    {details.length > 1 && (
+                      <Button color="red" className="p-2" onClick={() => removeDetailRow(index)} disabled={loading}>
+                        <TrashIcon className="h-5 w-5" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <Button color="blue" variant="text" className="mt-4 flex items-center gap-2" onClick={addDetailRow} disabled={loading}>
+                <PlusIcon className="h-5 w-5" /> Tambah Barang
+              </Button>
+            </CardBody>
+            <CardFooter className="pt-4 p-6 flex justify-end gap-2">
+              <Button variant="text" color="blue-gray" onClick={() => navigate(-1)} disabled={loading}>Batal</Button>
+              <Button variant="gradient" type="button" onClick={handleAjukanClick} disabled={loading}>
+                {loading ? 'Mengirim...' : 'Kirim Usulan'}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+      <ConfirmationProses
+        open={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleSubmit}
+        title="Konfirmasi Pengajuan"
+        message="Apakah Anda yakin data pengadaan yang dimasukkan sudah benar?"
+        actionText="Ya, Kirim Usulan"
+        actionColor="green"
+      />
+    </>
   );
 }
 

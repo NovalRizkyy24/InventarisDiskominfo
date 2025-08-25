@@ -9,6 +9,7 @@ import {
   Chip
 } from "@material-tailwind/react";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { useAuth } from "@/hooks/useAuth";
 
 const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString("id-ID") : "-";
 const getStatusColor = (status) => ({ 'Diajukan': 'blue', 
@@ -18,6 +19,9 @@ const getStatusColor = (status) => ({ 'Diajukan': 'blue',
 
 export function DataPeminjaman() {
   const [peminjaman, setPeminjaman] = useState([]);
+  const { user } = useAuth();
+
+  const layout = user?.role.toLowerCase().replace(/ /g, '-');
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -80,7 +84,7 @@ export function DataPeminjaman() {
                     <Chip variant="gradient" color={getStatusColor(item.status)} value={item.status} className="py-0.5 px-2 text-[11px]" />
                   </td>
                   <td className="py-3 px-5 border-b">
-                    <Link to={`/admin/detail-peminjaman/${item.id}`}>
+                    <Link to={`/${layout}/detail-peminjaman/${item.id}`}>
                       <Button variant="text" size="sm">Lihat Detail</Button>
                     </Link>
                   </td>

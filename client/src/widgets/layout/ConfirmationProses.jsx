@@ -21,8 +21,9 @@ export function ConfirmationProses({
   return (
     <Dialog open={open} handler={onClose} size="sm">
       <DialogHeader>
+        {/* --- PERBAIKAN: Beri nilai default jika title kosong --- */}
         <Typography variant="h5" color="blue-gray">
-          {title}
+          {title || 'Konfirmasi'}
         </Typography>
       </DialogHeader>
       <DialogBody divider className="grid place-items-center gap-4">
@@ -30,8 +31,9 @@ export function ConfirmationProses({
         <Typography color="blue-gray" variant="h4">
           Anda Yakin?
         </Typography>
+        {/* --- PERBAIKAN: Beri nilai default jika message kosong --- */}
         <Typography className="text-center font-normal">
-          {message}
+          {message || 'Apakah Anda ingin melanjutkan proses ini?'}
         </Typography>
       </DialogBody>
       <DialogFooter className="space-x-2">

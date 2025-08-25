@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardBody, CardFooter, Typography, Button, Chip, Input } from "@material-tailwind/react";
+import { Card, CardHeader, CardBody, CardFooter, Typography, Button, Chip, Input, Textarea } from "@material-tailwind/react";
 import { useAuth } from "@/hooks/useAuth";
 import toast from "react-hot-toast";
 import { ConfirmationModal, ConfirmationProses } from "@/widgets/layout";
@@ -13,7 +13,9 @@ const formatDateTime = (dateString) => {
 };
 const getStatusColor = (status) => ({'Diajukan': 'blue', 'Divalidasi Pengurus Barang': 'green', 'Selesai': 'gray', 'Ditolak': 'red'})[status] || 'gray';
 
+// --- Komponen Form Berita Acara (Eksternal) ---
 const BeritaAcaraForm = ({ peminjamanId, dataPeminjaman, onSaveSuccess }) => {
+  // ... (Kode untuk BeritaAcaraForm tidak ada perubahan)
   const [pihakKedua, setPihakKedua] = useState({
     nama_pihak_kedua: "",
     nip_pihak_kedua: "",
@@ -127,6 +129,50 @@ const BeritaAcaraForm = ({ peminjamanId, dataPeminjaman, onSaveSuccess }) => {
   );
 };
 
+// --- Komponen ActionButtons yang dipisah ---
+const ActionButtons = ({ peminjaman, user, openConfirmModal, handleUpdateStatus, setIsDeleteModalOpen, catatan, setCatatan }) => {
+  if (!peminjaman || !user) return null;
+  const { status, user_peminjam_id } = peminjaman;
+
+  if (user.id === user_peminjam_id && status === 'Diajukan') {
+      return <Button color="red" onClick={() => setIsDeleteModalOpen(true)}>Hapus Pengajuan</Button>;
+  }
+
+  if (user.role === 'Pengurus Barang') {
+    if (status === 'Diajukan') {
+      return (
+        <div className="flex flex-col gap-4">
+          <Textarea 
+            label="Catatan (Wajib diisi jika menolak)" 
+            value={catatan} 
+            onChange={(e) => setCatatan(e.target.value)} 
+          />
+          <div className="flex gap-2">
+            <Button 
+              color="green" 
+              onClick={() => openConfirmModal(() => handleUpdateStatus('Divalidasi Pengurus Barang'), 'Konfirmasi Persetujuan', 'Anda yakin ingin menyetujui peminjaman barang ini?', 'Ya, Setujui', 'green')}
+              disabled={!!catatan} 
+            >
+              Setujui Peminjaman
+            </Button>
+            <Button 
+              color="red" 
+              onClick={() => openConfirmModal(() => handleUpdateStatus('Ditolak', catatan), 'Konfirmasi Penolakan', 'Anda yakin ingin menolak peminjaman ini?', 'Ya, Tolak', 'red')}
+              disabled={!catatan}
+            >
+              Tolak
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    if (status === 'Divalidasi Pengurus Barang') {
+      return <Button color="blue" onClick={() => openConfirmModal(() => handleUpdateStatus('Selesai'), 'Konfirmasi Pengembalian', 'Anda yakin ingin menandai barang ini sudah kembali?', 'Ya, Tandai Kembali', 'blue')}>Tandai Sudah Kembali</Button>;
+    }
+  }
+  return null;
+};
+
 export function DetailPeminjaman() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -134,6 +180,7 @@ export function DetailPeminjaman() {
   const [peminjaman, setPeminjaman] = useState(null);
   const [logData, setLogData] = useState([]);
   const [error, setError] = useState("");
+  const [catatan, setCatatan] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [confirmState, setConfirmState] = useState({ isOpen: false, action: null, title: "", message: "", actionText: "Ya", actionColor: "green" });
 
@@ -160,14 +207,14 @@ export function DetailPeminjaman() {
     fetchDetailAndLogs();
   }, [id]);
   
-  const handleUpdateStatus = async (status_baru) => {
+  const handleUpdateStatus = async (status_baru, catatanPenolakan = null) => {
     const token = localStorage.getItem("authToken");
     const toastId = toast.loading("Memperbarui status...");
     try {
       const response = await fetch(`/api/peminjaman/${id}/status`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ status_baru }),
+          body: JSON.stringify({ status_baru, catatan: catatanPenolakan }),
       });
       if (!response.ok) throw new Error((await response.json()).message);
       toast.success("Status berhasil diperbarui.", { id: toastId });
@@ -232,25 +279,6 @@ export function DetailPeminjaman() {
     setConfirmState({ isOpen: false, action: null });
   };
   
-  const ActionButtons = () => {
-    if (!peminjaman || !user) return null;
-    const { status, user_peminjam_id } = peminjaman;
-
-    if (user.id === user_peminjam_id && status === 'Diajukan') {
-        return <Button color="red" onClick={() => setIsDeleteModalOpen(true)}>Hapus Pengajuan</Button>;
-    }
-
-    if (user.role === 'Pengurus Barang') {
-      if (status === 'Diajukan') {
-        return <Button color="green" onClick={() => openConfirmModal(() => handleUpdateStatus('Divalidasi Pengurus Barang'), 'Konfirmasi Persetujuan', 'Anda yakin ingin menyetujui peminjaman barang ini?', 'Ya, Setujui', 'green')}>Setujui Peminjaman</Button>;
-      }
-      if (status === 'Divalidasi Pengurus Barang') {
-        return <Button color="blue" onClick={() => openConfirmModal(() => handleUpdateStatus('Selesai'), 'Konfirmasi Pengembalian', 'Anda yakin ingin menandai barang ini sudah kembali?', 'Ya, Tandai Kembali', 'blue')}>Tandai Sudah Kembali</Button>;
-      }
-    }
-    return null;
-  };
-
   if (!peminjaman) return <Typography className="text-center mt-12">Memuat...</Typography>;
 
   return (
@@ -263,7 +291,7 @@ export function DetailPeminjaman() {
         <CardBody>
             {error && <Typography color="red" className="mb-4 text-center">{error}</Typography>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><Typography variant="small" className="font-bold">Nama Pengusul:</Typography><Typography>{peminjaman?.nama_peminjam || '-'}</Typography></div>
+                <div><Typography variant="small" className="font-bold">Nama Peminjam:</Typography><Typography>{peminjaman?.nama_peminjam || '-'}</Typography></div>
                 <div><Typography variant="small" className="font-bold">Kode Barang:</Typography><Typography>{peminjaman?.kode_barang || '-'}</Typography></div>
                 <div><Typography variant="small" className="font-bold">Tanggal Pinjam:</Typography><Typography>{formatDate(peminjaman?.tanggal_mulai_pinjam)}</Typography></div>
                 <div><Typography variant="small" className="font-bold">Tanggal Kembali:</Typography><Typography>{formatDate(peminjaman?.tanggal_rencana_kembali)}</Typography></div>
@@ -290,7 +318,7 @@ export function DetailPeminjaman() {
             </CardHeader>
             <CardBody className="flex flex-col gap-4">
                 <Typography>
-                    Data Pihak Kedua
+                    Data Pihak Kedua (peminjam) diambil otomatis dari data akun Anda:
                 </Typography>
                 <div className="p-4 border rounded-lg grid grid-cols-1 gap-2 bg-blue-gray-50/50">
                     <div>
@@ -316,7 +344,15 @@ export function DetailPeminjaman() {
       <Card>
           <CardHeader variant="gradient" color="gray" className="p-6"><Typography variant="h6" color="white">Aksi</Typography></CardHeader>
           <CardBody>
-              <ActionButtons />
+              <ActionButtons
+                peminjaman={peminjaman}
+                user={user}
+                openConfirmModal={openConfirmModal}
+                handleUpdateStatus={handleUpdateStatus}
+                setIsDeleteModalOpen={setIsDeleteModalOpen}
+                catatan={catatan}
+                setCatatan={setCatatan}
+              />
           </CardBody>
       </Card>
 

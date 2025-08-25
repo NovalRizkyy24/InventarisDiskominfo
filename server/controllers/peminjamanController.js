@@ -92,6 +92,8 @@ const updateStatusPeminjaman = async (req, res) => {
         } else if (status_baru === 'Divalidasi Pengurus Barang' && status_sebelum === 'Diajukan'){
              await client.query("UPDATE peminjaman SET status = 'Divalidasi Pengurus Barang' WHERE id = $1", [id]);
              await client.query("UPDATE barang SET status = 'Dipinjam' WHERE id = $1", [barang_id]);
+        } else if (status_baru === 'Ditolak' && status_sebelum === 'Diajukan') {
+             await client.query("UPDATE peminjaman SET status = 'Ditolak', catatan_penolakan = $1 WHERE id = $2", [catatan, id]);
         } else {
              await client.query("UPDATE peminjaman SET status = $1, catatan_penolakan = CASE WHEN $1 = 'Ditolak' THEN $2 ELSE catatan_penolakan END WHERE id = $3", [status_baru, catatan, id]);
         }

@@ -4,7 +4,8 @@ const {
     createPenghapusan,
     getAllPenghapusan,
     updateStatusPenghapusan,
-    getPenghapusanById
+    getPenghapusanById,
+    getPenghapusanLogs
 } = require('../controllers/penghapusanController');
 const verifyToken = require('../middleware/verifyToken');
 
@@ -14,6 +15,8 @@ router.route('/penghapusan')
     .post(createPenghapusan)
     .get(getAllPenghapusan);
     
+router.get('/penghapusan/:id/logs', getPenghapusanLogs);
+
 router.route('/penghapusan/:id') 
     .get(getPenghapusanById);
     

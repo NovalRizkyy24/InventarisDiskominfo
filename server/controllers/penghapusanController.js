@@ -121,9 +121,38 @@ const getPenghapusanById = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get validation logs for a specific penghapusan request
+ * @route   GET /api/penghapusan/:id/logs
+ * @access  Private
+ */
+const getPenghapusanLogs = async (req, res) => {
+    const { id: penghapusanId } = req.params;
+    try {
+        const query = `
+            SELECT 
+                log.waktu_validasi,
+                log.status_sebelum,
+                log.status_sesudah,
+                log.catatan,
+                u.nama AS nama_validator
+            FROM log_validasi log
+            JOIN users u ON log.user_validator_id = u.id
+            WHERE log.penghapusan_id = $1
+            ORDER BY log.waktu_validasi ASC;
+        `;
+        const { rows } = await pool.query(query, [penghapusanId]);
+        res.json(rows);
+    } catch (error) {
+        console.error('Error saat mengambil log validasi penghapusan:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    }
+};
+
 module.exports = {
     createPenghapusan,
     getAllPenghapusan,
     updateStatusPenghapusan,
     getPenghapusanById, 
+    getPenghapusanLogs,
 };
