@@ -33,3 +33,11 @@ build/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+server/uploads/bukti_penghapusan/*
+server/uploads/foto_barang/*
+server/uploads/surat_peminjaman/*
+
+!server/uploads/bukti_penghapusan/.gitkeep
+!server/uploads/foto_barang/.gitkeep
+!server/uploads/surat_peminjaman/.gitkeep
