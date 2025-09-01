@@ -2,18 +2,23 @@ const express = require('express');
 const router = express.Router();
 const { 
     getAllBarang, 
-    getBarangById, 
+    getBarangById, // Kita akan gunakan lagi fungsi ini
     createBarang, 
     updateBarang, 
     deleteBarang,
     validateBarang,
     regenerateQrCode,
     getBarangLogs, 
+    uploadFotoBarang
 } = require('../controllers/barangController');
 const verifyToken = require('../middleware/verifyToken');
+const uploadFoto = require('../middleware/uploadFoto');
 
-// Semua rute barang dilindungi
+router.get('/barang/public/:id', getBarangById);
+
 router.use(verifyToken);
+
+router.post('/barang/:id/upload-foto', uploadFoto.single('foto_barang'), uploadFotoBarang);
 
 router.route('/barang')
     .get(getAllBarang)

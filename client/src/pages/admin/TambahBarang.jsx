@@ -12,6 +12,7 @@ import {
   Option,
 } from "@material-tailwind/react";
 import toast from 'react-hot-toast';
+import { useAuth } from "@/hooks/useAuth";
 
 const formatRupiah = (angka) => {
   if (!angka) return "";
@@ -31,6 +32,7 @@ const formatRupiah = (angka) => {
 
 export function TambahBarang() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [kategoriList, setKategoriList] = useState([]);
   const [formData, setFormData] = useState({
     nama_barang: "",
@@ -45,6 +47,7 @@ export function TambahBarang() {
   });
   const [loading, setLoading] = useState(false);
   const [kodePrefix, setKodePrefix] = useState("");
+  const [kodeSuffix, setKodeSuffix] = useState(""); 
 
   useEffect(() => {
     const fetchKategori = async () => {
@@ -62,50 +65,48 @@ export function TambahBarang() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === 'kode_barang') {
-      if (kodePrefix && !value.startsWith(kodePrefix)) {
-        return; 
-      }
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    } else if (name === 'nilai_perolehan') {
+    if (name === 'nilai_perolehan') {
         const numericValue = value.replace(/[^0-9]/g, '');
         setFormData((prev) => ({ ...prev, [name]: numericValue }));
     } else {
         setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
+
+  const handleKodeSuffixChange = (e) => {
+    setKodeSuffix(e.target.value);
+  };
   
   const handleKategoriChange = (value) => {
     const selectedKategori = kategoriList.find(kat => String(kat.id) === value);
-
     if (selectedKategori) {
       const prefix = `${selectedKategori.kode_kategori}-`;
-      setKodePrefix(prefix); 
+      setKodePrefix(prefix);
+      setKodeSuffix(""); 
       setFormData((prev) => ({
         ...prev,
         kategori_id: value,
-        kode_barang: prefix, 
       }));
     } else {
       setKodePrefix("");
+      setKodeSuffix("");
       setFormData((prev) => ({
         ...prev,
         kategori_id: "",
-        kode_barang: "",
       }));
     }
   };
-
-  // const handleStatusChange = (value) => {
-  //   setFormData((prev) => ({...prev, status: value}));
-  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     const token = localStorage.getItem("authToken");
     const toastId = toast.loading('Menyimpan data...');
+
+    const finalFormData = {
+        ...formData,
+        kode_barang: kodePrefix + kodeSuffix,
+    };
 
     try {
       const response = await fetch('/api/barang', {
@@ -114,21 +115,25 @@ export function TambahBarang() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(finalFormData),
       });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || "Gagal menambah barang baru");
       }
       
-      toast.success("Barang baru berhasil ditambahkan!", { id: toastId });
-      setTimeout(() => navigate("/admin/data-barang"), 1500);
+      toast.success(data.message || "Barang baru berhasil ditambahkan!", { id: toastId });
+      
+      const layout = user?.role.toLowerCase().replace(/ /g, '-');
+      setTimeout(() => navigate(`/${layout}/data-barang`), 1500);
 
     } catch (err) {
       toast.error(err.message, { id: toastId });
       setLoading(false);
     }
   };
+
+  const layout = user?.role.toLowerCase().replace(/ /g, '-');
 
   return (
     <div className="mt-12 mb-8 flex justify-center">
@@ -147,14 +152,25 @@ export function TambahBarang() {
                   <Option key={kat.id} value={String(kat.id)}>{kat.nama_kategori}</Option>
                 ))}
               </Select>
-              <Input 
-                label="Kode Barang*" 
-                name="kode_barang" 
-                value={formData.kode_barang} 
-                onChange={handleChange} 
-                required 
-                disabled={!kodePrefix} 
-              />
+
+              <div>
+                <label htmlFor="kode_barang_input" className="text-blue-gray-600 text-sm font-medium">Kode Barang*</label>
+                <div className="flex items-center w-full border border-blue-gray-200 rounded-lg mt-1">
+                    <span className="bg-gray-200 text-gray-700 px-3 py-2 border-r border-blue-gray-200">
+                        {kodePrefix || 'KODE '}
+                    </span>
+                    <input
+                        id="kode_barang_input"
+                        type="text"
+                        className="p-2 w-full focus:outline-none"
+                        value={kodeSuffix}
+                        onChange={handleKodeSuffixChange}
+                        disabled={!formData.kategori_id}
+                        required
+                    />
+                </div>
+              </div>
+              
               <Input label="Merk" name="merk" onChange={handleChange} />
               <Input label="Tipe" name="tipe" onChange={handleChange} />
               <Input label="Sumber Dana" name="sumber_dana" onChange={handleChange} />
@@ -163,7 +179,7 @@ export function TambahBarang() {
             </div>
           </CardBody>
           <CardFooter className="pt-0 p-6 flex justify-end gap-2">
-            <Button variant="text" color="blue-gray" onClick={() => navigate("/admin/data-barang")} disabled={loading}>
+            <Button variant="text" color="blue-gray" onClick={() => navigate(`/${layout}/data-barang`)} disabled={loading}>
               Batal
             </Button>
             <Button variant="gradient" type="submit" disabled={loading}>

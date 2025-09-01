@@ -3,22 +3,20 @@ import { Auth } from "@/layouts";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import ProtectedRoute from "@/layouts/ProtectedRoute";
 import routes from "@/routes";
+import { DetailBarangPublik } from "@/pages/public/DetailBarangPublik"; 
 
 function App() {
   return (
     <Routes>
-      {/* Rute Publik */}
       <Route path="/auth/*" element={<Auth />} />
+      <Route path="/public/barang/:id" element={<DetailBarangPublik />} />
 
-      {/* Grup Rute yang Dilindungi */}
       <Route element={<ProtectedRoute />}>
-        {/* Gunakan DashboardLayout sebagai cangkang untuk semua peran */}
         <Route element={<DashboardLayout />}>
           {routes
             .filter((route) => route.layout !== "auth")
             .map(({ layout, pages }) =>
               pages.map((page) => {
-                // Jika halaman memiliki sub-rute (seperti Data Master)
                 if (page.subRoutes) {
                   return page.subRoutes.map(({ path, element }) => (
                     <Route
@@ -28,7 +26,6 @@ function App() {
                     />
                   ));
                 }
-                // Jika halaman adalah rute biasa tanpa submenu
                 if (page.path) {
                   return (
                     <Route
@@ -44,7 +41,6 @@ function App() {
         </Route>
       </Route>
 
-      {/* Rute Default */}
       <Route path="*" element={<Navigate to="/auth/sign-in" replace />} />
     </Routes>
   );

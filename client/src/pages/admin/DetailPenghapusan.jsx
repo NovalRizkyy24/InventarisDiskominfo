@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Card, CardHeader, CardBody, Typography, Button, Chip, Textarea } from "@material-tailwind/react";
+import {
+    Card,
+    CardHeader,
+    CardBody,
+    CardFooter,
+    Typography,
+    Button,
+    Chip,
+    Textarea,
+    Input,
+    IconButton,
+    Tooltip
+} from "@material-tailwind/react";
 import { useAuth } from "@/hooks/useAuth";
-import { ConfirmationProses } from "@/widgets/layout";
+import { ConfirmationProses, ConfirmationModal } from "@/widgets/layout";
 import toast from "react-hot-toast";
+import { TrashIcon } from "@heroicons/react/24/solid";
 
 const formatDate = (dateString) => new Date(dateString).toLocaleDateString("id-ID");
 const formatDateTime = (dateString) => {
@@ -11,22 +24,88 @@ const formatDateTime = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
     return new Date(dateString).toLocaleString("id-ID", options).replace(/\./g, ':').replace('pukul', 'Pukul');
 };
-const getStatusColor = (status) => ({'Diajukan': 'blue', 'Divalidasi Pengurus Barang': 'light-blue', 'Divalidasi Penatausahaan': 'cyan', 'Disetujui Kepala Dinas': 'green', 'Ditolak': 'red'})[status] || 'gray';
 
-// --- KOMPONEN ACTIONBUTTONS DIPISAH KELUAR ---
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'Diajukan': return 'blue';
+    case 'Divalidasi Pengurus Barang': return 'light-blue';
+    case 'Selesai': return 'green';
+    case 'Ditolak': return 'red';
+    default: return 'gray';
+  }
+};
+
+const UploadBA = ({ usulanId, onUploadSuccess }) => {
+    const [file, setFile] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    const handleFileChange = (e) => {
+        setFile(e.target.files[0]);
+    };
+
+    const handleUpload = async () => {
+        if (!file) {
+            toast.error("Pilih file Berita Acara terlebih dahulu.");
+            return;
+        }
+        setLoading(true);
+        const toastId = toast.loading("Mengunggah Berita Acara...");
+        const token = localStorage.getItem("authToken");
+        
+        const formData = new FormData();
+        formData.append('berita_acara', file);
+
+        try {
+            const response = await fetch(`/api/penghapusan/${usulanId}/upload-ba`, {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}` },
+                body: formData,
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message);
+            toast.success("Berita Acara berhasil diunggah.", { id: toastId });
+            onUploadSuccess(); 
+        } catch (err) {
+            toast.error(err.message, { id: toastId });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <Card>
+            <CardHeader variant="gradient" color="blue-gray" className="p-6">
+                <Typography variant="h6" color="white">
+                    Unggah Berita Acara & Selesaikan Proses
+                </Typography>
+            </CardHeader>
+            <CardBody>
+                <Typography variant="small" className="mb-4">
+                    Silakan unduh Berita Acara, tandatangani, lalu unggah kembali untuk menyelesaikan proses penghapusan.
+                </Typography>
+                <Input
+                    type="file"
+                    label="Pilih Berita Acara (PDF/JPG/PNG)"
+                    onChange={handleFileChange}
+                    accept=".pdf,.jpg,.jpeg,.png"
+                />
+            </CardBody>
+            <CardFooter className="flex justify-end">
+                <Button onClick={handleUpload} disabled={loading || !file}>
+                    {loading ? "Mengunggah..." : "Unggah & Selesaikan"}
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+};
+
+
 const ActionButtons = ({ usulan, user, openConfirmModal, handleUpdateStatus, catatan, setCatatan }) => {
   if (!usulan || !user) return null;
   const { status } = usulan;
   const { role } = user;
 
-  const actions = {
-      'Diajukan': { role: 'Pengurus Barang', nextStatus: 'Divalidasi Pengurus Barang' },
-      'Divalidasi Pengurus Barang': { role: 'Penata Usaha Barang', nextStatus: 'Divalidasi Penatausahaan' },
-      'Divalidasi Penatausahaan': { role: 'Kepala Dinas', nextStatus: 'Disetujui Kepala Dinas' },
-  };
-
-  if (actions[status] && role === actions[status].role) {
-    const actionType = status === 'Divalidasi Penatausahaan' ? 'Setujui' : 'Validasi';
+  if (role === 'Pengurus Barang' && status === 'Diajukan') {
     return (
       <div className="flex flex-col gap-4">
         <Textarea 
@@ -37,10 +116,10 @@ const ActionButtons = ({ usulan, user, openConfirmModal, handleUpdateStatus, cat
         <div className="flex gap-2">
             <Button 
                 color="green" 
-                onClick={() => openConfirmModal(() => handleUpdateStatus(actions[status].nextStatus), `Konfirmasi ${actionType}`, `Anda yakin ingin ${actionType.toLowerCase()} usulan penghapusan ini?`, `Ya, ${actionType}`, 'green')}
+                onClick={() => openConfirmModal(() => handleUpdateStatus('Divalidasi Pengurus Barang'), `Konfirmasi Validasi`, `Anda yakin ingin memvalidasi usulan penghapusan ini?`, `Ya, Validasi`, 'green')}
                 disabled={!!catatan}
             >
-                {actionType}
+                Validasi
             </Button>
             <Button 
                 color="red" 
@@ -53,7 +132,7 @@ const ActionButtons = ({ usulan, user, openConfirmModal, handleUpdateStatus, cat
       </div>
     );
   }
-  return null;
+  return <Typography variant="small">Tidak ada aksi yang tersedia untuk Anda pada tahap ini.</Typography>;
 };
 
 export function DetailPenghapusan() {
@@ -71,6 +150,9 @@ export function DetailPenghapusan() {
     actionText: "Ya, Lanjutkan",
     actionColor: "green",
   });
+  const [isBaDeleteModalOpen, setIsBaDeleteModalOpen] = useState(false);
+  
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const fetchDetailAndLogs = async () => {
     const token = localStorage.getItem("authToken");
@@ -108,6 +190,36 @@ export function DetailPenghapusan() {
       setError(err.message);
     }
   };
+  
+  const handleDownload = async () => {
+    const toastId = toast.loading("Mempersiapkan Berita Acara...");
+    const token = localStorage.getItem("authToken");
+    try {
+      const response = await fetch(`${API_URL}/api/penghapusan/${id}/download-berita-acara`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Gagal mengunduh Berita Acara.");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `berita-acara-penghapusan-${usulan.nomor_usulan}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Unduhan dimulai!", { id: toastId });
+
+    } catch (err) {
+      toast.error(err.message, { id: toastId });
+    }
+  };
 
   const openConfirmModal = (action, title, message, actionText, actionColor) => {
     setConfirmState({
@@ -127,38 +239,111 @@ export function DetailPenghapusan() {
     setConfirmState({ isOpen: false, action: null });
   };
 
+  const handleDeleteBeritaAcara = async () => {
+    setIsBaDeleteModalOpen(false);
+    const toastId = toast.loading("Menghapus Berita Acara...");
+    const token = localStorage.getItem("authToken");
+
+    try {
+        const response = await fetch(`/api/penghapusan/${id}/delete-ba`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+        toast.success(data.message, { id: toastId });
+        fetchDetailAndLogs(); 
+    } catch (err) {
+        toast.error(err.message, { id: toastId });
+    }
+  };
+
   if (!usulan) return <Typography>Memuat...</Typography>;
 
-  return (
+  const canDownload = (usulan.status === 'Divalidasi Pengurus Barang' || usulan.status === 'Selesai') && user?.role !== 'Kepala Dinas';
+  const isImage = usulan.berita_acara_url && /\.(jpg|jpeg|png)$/i.test(usulan.berita_acara_url);
+
+    return (
     <div className="mt-12 mb-8 flex flex-col gap-8">
       <Card>
         <CardHeader variant="gradient" color="gray" className="p-6 flex justify-between items-center">
-          <Typography variant="h6" color="white">Detail Usulan Penghapusan: {usulan.nama_barang}</Typography>
+          <Typography variant="h6" color="white">Detail Usulan Penghapusan: {usulan.nomor_usulan}</Typography>
           <Chip variant="gradient" color={getStatusColor(usulan.status)} value={usulan.status} />
         </CardHeader>
         <CardBody>
           {error && <Typography color="red" className="mb-4 text-center">{error}</Typography>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><Typography variant="small" className="font-bold">Nama Barang:</Typography><Typography>{usulan.nama_barang}</Typography></div>
             <div><Typography variant="small" className="font-bold">Nama Pengusul:</Typography><Typography>{usulan.nama_pengusul}</Typography></div>
             <div><Typography variant="small" className="font-bold">Kode Barang:</Typography><Typography>{usulan.kode_barang}</Typography></div>
             <div><Typography variant="small" className="font-bold">Tanggal Usulan:</Typography><Typography>{formatDate(usulan.tanggal_pengajuan)}</Typography></div>
             <div className="md:col-span-2"><Typography variant="small" className="font-bold">Alasan Penghapusan:</Typography><Typography>{usulan.alasan_penghapusan}</Typography></div>
+            
+            <div className="md:col-span-2">
+                <Typography variant="small" className="font-bold">Bukti Kerusakan:</Typography>
+                {usulan.foto_kerusakan_url ? (
+                    <a href={`${API_URL}/${usulan.foto_kerusakan_url}`} target="_blank" rel="noopener noreferrer">
+                        <Button color="blue" size="sm" className="mt-1">
+                            Lihat Bukti Kerusakan
+                        </Button>
+                    </a>
+                ) : (
+                    <Typography className="text-sm text-blue-gray-500 mt-1">Tidak ada bukti yang diunggah.</Typography>
+                )}
+            </div>
+            
+            {usulan.berita_acara_url && (
+              <div className="md:col-span-2">
+                <Typography variant="small" className="font-bold mb-2">Dokumen Berita Acara:</Typography>
+                {isImage && (
+                    <img src={`${API_URL}/${usulan.berita_acara_url}`} alt="Preview Berita Acara" className="w-full max-w-lg h-auto rounded-lg border shadow-md mb-2" />
+                )}
+                <div className="flex items-center gap-2">
+                    <a href={`${API_URL}/${usulan.berita_acara_url}`} target="_blank" rel="noopener noreferrer">
+                        <Button color="blue" size="sm">
+                            Lihat Dokumen
+                        </Button>
+                    </a>
+                    {user?.role === 'Pengurus Barang' && (
+                        <Tooltip content="Hapus Berita Acara">
+                            <IconButton color="red" size="sm" onClick={() => setIsBaDeleteModalOpen(true)}>
+                                <TrashIcon className="h-4 w-4" />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                </div>
+              </div>
+            )}
+          </div>
+           <div className="mt-6 flex justify-end">
+            {canDownload && (
+              <Button color="green" onClick={handleDownload}>
+                Download Berita Acara
+              </Button>
+            )}
           </div>
         </CardBody>
       </Card>
-      <Card>
-          <CardHeader variant="gradient" color="gray" className="p-6"><Typography variant="h6" color="white">Aksi</Typography></CardHeader>
-          <CardBody>
-              <ActionButtons
-                usulan={usulan}
-                user={user}
-                openConfirmModal={openConfirmModal}
-                handleUpdateStatus={handleUpdateStatus}
-                catatan={catatan}
-                setCatatan={setCatatan}
-              />
-          </CardBody>
-      </Card>
+
+      {usulan.status === 'Diajukan' && user?.role === 'Pengurus Barang' && (
+          <Card>
+              <CardHeader variant="gradient" color="gray" className="p-6"><Typography variant="h6" color="white">Aksi Validasi</Typography></CardHeader>
+              <CardBody>
+                  <ActionButtons
+                    usulan={usulan}
+                    user={user}
+                    openConfirmModal={openConfirmModal}
+                    handleUpdateStatus={handleUpdateStatus}
+                    catatan={catatan}
+                    setCatatan={setCatatan}
+                  />
+              </CardBody>
+          </Card>
+      )}
+
+      {(usulan.status === 'Divalidasi Pengurus Barang' || usulan.status === 'Selesai') && user?.role === 'Pengurus Barang' && (
+          <UploadBA usulanId={id} onUploadSuccess={fetchDetailAndLogs} />
+      )}
 
       <Card>
         <CardHeader variant="gradient" color="blue-gray" className="p-6">
@@ -209,6 +394,14 @@ export function DetailPenghapusan() {
         message={confirmState.message}
         actionText={confirmState.actionText}
         actionColor={confirmState.actionColor}
+      />
+
+      <ConfirmationModal
+        open={isBaDeleteModalOpen}
+        onClose={() => setIsBaDeleteModalOpen(false)}
+        onConfirm={handleDeleteBeritaAcara}
+        title="Konfirmasi Hapus"
+        message="Anda yakin ingin menghapus Berita Acara ini? Anda perlu mengunggahnya kembali untuk menyelesaikan proses."
       />
     </div>
   );

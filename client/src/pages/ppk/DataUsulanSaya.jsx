@@ -10,7 +10,6 @@ import {
 } from "@material-tailwind/react";
 import { useAuth } from "@/hooks/useAuth";
 
-// Fungsi helper
 const formatDate = (dateString) => new Date(dateString).toLocaleDateString("id-ID", { year: 'numeric', month: 'long', day: 'numeric' });
 const getStatusColor = (status) => ({'Diajukan': 'blue', 'Divalidasi Pengurus Barang': 'light-blue', 'Divalidasi Penatausahaan': 'cyan', 'Disetujui Kepala Dinas': 'teal', 'Selesai': 'green', 'Ditolak': 'red'})[status] || 'gray';
 
@@ -18,14 +17,12 @@ export function DataUsulanSaya() {
   const [usulan, setUsulan] = useState([]);
   const { user } = useAuth();
   
-  // Layout dinamis untuk link detail
   const layout = user?.role.toLowerCase().replace(/ /g, '-');
 
   useEffect(() => {
     const fetchUsulanSaya = async () => {
       const token = localStorage.getItem("authToken");
       try {
-        // Panggil API endpoint yang baru
         const response = await fetch('/api/pengadaan/saya', {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -51,7 +48,7 @@ export function DataUsulanSaya() {
           <table className="w-full min-w-[640px] table-auto">
             <thead>
               <tr>
-                {["Nomor Usulan", "Tanggal", "Program", "Status", "Aksi"].map((el) => (
+                {["Nomor Usulan", "Tanggal Usulan", "Program", "Status", "Aksi"].map((el) => (
                   <th key={el} className="border-b border-blue-gray-50 py-3 px-5 text-left">
                     <Typography variant="small" className="text-[11px] font-bold uppercase text-blue-gray-400">{el}</Typography>
                   </th>
@@ -68,7 +65,6 @@ export function DataUsulanSaya() {
                     <Chip variant="gradient" color={getStatusColor(item.status)} value={item.status} className="py-0.5 px-2 text-[11px] font-medium" />
                   </td>
                   <td className="py-3 px-5 border-b">
-                    {/* Link ke detail tidak lagi hardcoded ke /admin */}
                     <Link to={`/${layout}/detail-pengadaan/${item.id}`}>
                        <Button variant="text" size="sm">Lihat Detail</Button>
                     </Link>

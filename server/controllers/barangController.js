@@ -5,10 +5,9 @@ const qrcode = require('qrcode');
 // @route   GET /api/barang
 // @access  Private
 const getAllBarang = async (req, res) => {
-  const userRole = req.user.role; // Ambil role dari token JWT
+  const userRole = req.user.role; 
 
   try {
-    // PERBAIKAN: Sebutkan semua kolom secara eksplisit untuk menghindari ambiguitas
     let queryText = `
       SELECT 
         b.id, 
@@ -26,10 +25,8 @@ const getAllBarang = async (req, res) => {
       LEFT JOIN users u ON b.pemegang_barang_id = u.id
     `;
 
-    // Logika bisnis: Hanya peran tertentu yang bisa melihat barang 'Tidak Aktif'
     const allowedRoles = ['Admin', 'Pengurus Barang', 'Penata Usaha Barang', 'Kepala Dinas'];
     if (!allowedRoles.includes(userRole)) {
-      // Tambahkan WHERE clause jika belum ada
       queryText += " WHERE b.status <> 'Tidak Aktif'";
     }
     
@@ -61,7 +58,6 @@ const getBarangById = async (req, res) => {
       LEFT JOIN users u ON b.pemegang_barang_id = u.id
       WHERE b.id = $1
     `;
-    // === AKHIR PERBAIKAN QUERY ===
 
     const { rows } = await pool.query(query, [id]);
     
@@ -114,7 +110,7 @@ const createBarang = async (req, res) => {
 
     } catch (error) {
         console.error('Error saat membuat barang:', error);
-        if (error.code === '23505') { // Unique violation
+        if (error.code === '23505') { 
             return res.status(409).json({ message: `Kode barang '${kode_barang}' sudah ada.` });
         }
         res.status(500).json({ message: 'Terjadi kesalahan pada server' });
@@ -222,7 +218,8 @@ const validateBarang = async (req, res) => {
 const regenerateQrCode = async (req, res) => {
     const { id } = req.params;
     try {
-        const barangUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/detail-barang/${id}`;
+        const barangUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/public/barang/${id}`;
+        //const barangUrl = `${process.env.FRONTEND_URL || 'http://192.168.1.6:5173'}/public/barang/${id}`;
 
         const qrCodeDataUrl = await qrcode.toDataURL(barangUrl);
 
@@ -274,6 +271,36 @@ const getBarangLogs = async (req, res) => {
     }
 };
 
+const uploadFotoBarang = async (req, res) => {
+    const { id } = req.params;
+    
+    if (!req.file) {
+        return res.status(400).json({ message: 'Tidak ada file yang diunggah.' });
+    }
+
+    const fotoUrl = req.file.path.replace(/\\/g, "/");
+
+    try {
+        const result = await pool.query(
+            'UPDATE barang SET foto_url = $1 WHERE id = $2 RETURNING foto_url',
+            [fotoUrl, id]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Barang tidak ditemukan.' });
+        }
+
+        res.json({ 
+            message: 'Foto berhasil diunggah.', 
+            foto_url: result.rows[0].foto_url 
+        });
+    } catch (error) {
+        console.error('Error saat unggah foto:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
+    }
+};
+
+
 module.exports = {
   getAllBarang,
   getBarangById,
@@ -283,4 +310,5 @@ module.exports = {
   validateBarang,
   regenerateQrCode,
   getBarangLogs,
+  uploadFotoBarang
 };

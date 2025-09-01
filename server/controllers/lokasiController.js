@@ -41,9 +41,11 @@ const getLokasiById = async (req, res) => {
  */
 const createLokasi = async (req, res) => {
     const { nama_lokasi, provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi } = req.body;
-    if (!nama_lokasi) {
-        return res.status(400).json({ message: 'Nama lokasi harus diisi.' });
+    
+    if (!nama_lokasi || typeof nama_lokasi !== 'string' || nama_lokasi.trim() === '') {
+        return res.status(400).json({ message: 'Nama lokasi harus diisi dan tidak boleh kosong.' });
     }
+
     try {
         const { rows } = await pool.query(
             'INSERT INTO lokasi (nama_lokasi, provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
@@ -52,7 +54,7 @@ const createLokasi = async (req, res) => {
         res.status(201).json({ message: 'Lokasi berhasil dibuat', lokasi: rows[0] });
     } catch (error) {
         console.error('Error saat membuat lokasi:', error);
-        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+        res.status(500).json({ message: 'Terjadi kesalahan pada server saat menyimpan data.', error: error.message });
     }
 };
 
@@ -64,6 +66,11 @@ const createLokasi = async (req, res) => {
 const updateLokasi = async (req, res) => {
     const { id } = req.params;
     const { nama_lokasi, provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi } = req.body;
+    
+    if (!nama_lokasi || typeof nama_lokasi !== 'string' || nama_lokasi.trim() === '') {
+        return res.status(400).json({ message: 'Nama lokasi tidak boleh kosong.' });
+    }
+    
     try {
         const { rows, rowCount } = await pool.query(
             'UPDATE lokasi SET nama_lokasi = $1, provinsi = $2, kab_kota = $3, kecamatan = $4, kelurahan_desa = $5, deskripsi = $6 WHERE id = $7 RETURNING *',
@@ -75,7 +82,7 @@ const updateLokasi = async (req, res) => {
         res.json({ message: 'Lokasi berhasil diperbarui', lokasi: rows[0] });
     } catch (error) {
         console.error('Error saat memperbarui lokasi:', error);
-        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+        res.status(500).json({ message: 'Terjadi kesalahan pada server saat memperbarui data.', error: error.message });
     }
 };
 

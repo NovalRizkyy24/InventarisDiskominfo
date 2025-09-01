@@ -51,34 +51,39 @@ export function EditBarang() {
   });
   const [kategoriList, setKategoriList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [kodePrefix, setKodePrefix] = useState("");
+  const [kodeSuffix, setKodeSuffix] = useState(""); 
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
 
-    const fetchKategori = async () => {
+    const fetchKategoriAndBarang = async () => {
       try {
-        const response = await fetch('/api/kategori', { headers: { Authorization: `Bearer ${token}` } });
-        setKategoriList(await response.json());
+        const kategoriResponse = await fetch('/api/kategori', { headers: { Authorization: `Bearer ${token}` } });
+        if (!kategoriResponse.ok) throw new Error("Gagal memuat kategori.");
+        const kategoriData = await kategoriResponse.json();
+        setKategoriList(kategoriData);
+
+        const barangResponse = await fetch(`/api/barang/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!barangResponse.ok) throw new Error("Gagal mengambil data barang");
+        const barangData = await barangResponse.json();
+        
+        setFormData({ ...barangData, tanggal_perolehan: formatDate(barangData.tanggal_perolehan) });
+        
+        if(barangData.kategori_id) {
+            const initialKategori = kategoriData.find(kat => kat.id === barangData.kategori_id);
+            if (initialKategori) {
+                const prefix = `${initialKategori.kode_kategori}-`;
+                setKodePrefix(prefix);
+                setKodeSuffix(barangData.kode_barang.replace(prefix, ''));
+            }
+        }
       } catch (error) {
-        toast.error("Gagal memuat daftar kategori.");
-      }
-    };
-    
-    const fetchBarangData = async () => {
-      try {
-        const response = await fetch(`/api/barang/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error("Gagal mengambil data barang");
-        const data = await response.json();
-        setFormData({ ...data, tanggal_perolehan: formatDate(data.tanggal_perolehan) });
-      } catch (err) {
-        toast.error(err.message);
+        toast.error(error.message);
       }
     };
 
-    fetchKategori();
-    fetchBarangData();
+    fetchKategoriAndBarang();
   }, [id]);
 
   const handleChange = (e) => {
@@ -90,9 +95,22 @@ export function EditBarang() {
         setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
+  
+  const handleKodeSuffixChange = (e) => {
+    setKodeSuffix(e.target.value);
+  };
 
   const handleKategoriChange = (value) => {
-    setFormData((prev) => ({ ...prev, kategori_id: value }));
+    const selectedKategori = kategoriList.find(kat => String(kat.id) === value);
+    if (selectedKategori) {
+        const newPrefix = `${selectedKategori.kode_kategori}-`;
+        setKodePrefix(newPrefix); 
+        setKodeSuffix(""); 
+        setFormData((prev) => ({
+            ...prev,
+            kategori_id: value,
+        }));
+    }
   };
 
   const handleStatusChange = (value) => {
@@ -105,6 +123,11 @@ export function EditBarang() {
     const token = localStorage.getItem("authToken");
     const toastId = toast.loading('Memperbarui data...');
 
+    const finalFormData = {
+        ...formData,
+        kode_barang: kodePrefix + kodeSuffix,
+    };
+
     try {
       const response = await fetch(`/api/barang/${id}`, {
         method: "PUT",
@@ -112,7 +135,7 @@ export function EditBarang() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(finalFormData), 
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Gagal memperbarui data");
@@ -136,12 +159,36 @@ export function EditBarang() {
           <CardBody className="flex flex-col gap-6 p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input label="Nama Barang*" name="nama_barang" value={formData.nama_barang || ''} onChange={handleChange} required />
-              <Input label="Kode Barang*" name="kode_barang" value={formData.kode_barang || ''} onChange={handleChange} required />
-              <Select label="Kategori" name="kategori_id" value={String(formData.kategori_id || '')} onChange={handleKategoriChange}>
+              <Select 
+                label="Kategori" 
+                name="kategori_id" 
+                value={String(formData.kategori_id || '')} 
+                onChange={handleKategoriChange}
+              >
                 {kategoriList.map((kat) => (
                   <Option key={kat.id} value={String(kat.id)}>{kat.nama_kategori}</Option>
                 ))}
               </Select>
+              
+              {/* --- KODE BARANG DIPISAH --- */}
+              <div>
+                <label htmlFor="kode_barang_input" className="text-blue-gray-600 text-sm font-medium">Kode Barang*</label>
+                <div className="flex items-center w-full border border-blue-gray-200 rounded-lg mt-1">
+                    <span className="bg-gray-200 text-gray-700 px-3 py-2 border-r border-blue-gray-200">
+                        {kodePrefix || 'Pilih Kategori'}
+                    </span>
+                    <input
+                        id="kode_barang_input"
+                        type="text"
+                        className="p-2 w-full focus:outline-none"
+                        value={kodeSuffix}
+                        onChange={handleKodeSuffixChange}
+                        disabled={!formData.kategori_id}
+                        required
+                    />
+                </div>
+              </div>
+
               <Input label="Merk" name="merk" value={formData.merk || ''} onChange={handleChange} />
               <Input label="Tipe" name="tipe" value={formData.tipe || ''} onChange={handleChange} />
               <Input label="Sumber Dana" name="sumber_dana" value={formData.sumber_dana || ''} onChange={handleChange} />

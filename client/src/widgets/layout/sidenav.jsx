@@ -38,12 +38,16 @@ export function Sidenav({ brandImg, brandName, routes }) {
     >
       <div className="relative">
         <Link to="/" className="py-6 px-8 text-center">
-          <Typography
-            variant="h6"
-            color={sidenavType === "dark" ? "white" : "blue-gray"}
-          >
-            {brandName}
-          </Typography>
+          {brandImg ? (
+            <img src={brandImg} alt="Brand Logo" className="w-full h-auto max-h-12 object-contain" />
+          ) : (
+            <Typography
+              variant="h6"
+              color={sidenavType === "dark" ? "white" : "blue-gray"}
+            >
+              {brandName}
+            </Typography>
+          )}
         </Link>
         <IconButton
           variant="text"
@@ -60,9 +64,9 @@ export function Sidenav({ brandImg, brandName, routes }) {
         {routes.map(({ layout, pages }, key) => (
           <ul key={key} className="mb-4 flex flex-col gap-1">
             {pages
-              .filter((page) => page.name) // <-- FILTER: Hanya render halaman yang punya 'name'
+              .filter((page) => page.name)
               .map(({ icon, name, path, subRoutes }, pageKey) => (
-              <li key={name}> {/* <-- KEY: Menambahkan 'key' unik */}
+              <li key={name}>
                 {subRoutes ? (
                   <Accordion
                     open={open === pageKey + 1}
@@ -80,7 +84,7 @@ export function Sidenav({ brandImg, brandName, routes }) {
                       className="p-0 border-b-0"
                     >
                        <div
-                        className={`flex items-center gap-4 px-4 capitalize font-medium w-full rounded-lg hover:bg-blue-gray-500/10 text-${sidenavType === "dark" ? "white" : "blue-gray"}`}
+                        className={`flex items-center gap-4 px-4 py-3 capitalize font-medium w-full rounded-lg hover:bg-blue-gray-500/10 text-${sidenavType === "dark" ? "white" : "blue-gray"}`}
                       >
                         {icon}
                         <Typography color="inherit" className="font-medium capitalize">{name}</Typography>
@@ -106,7 +110,7 @@ export function Sidenav({ brandImg, brandName, routes }) {
                                         ? "white"
                                         : "blue-gray"
                                     }
-                                    className="flex items-center gap-4 px-4 capitalize"
+                                    className="flex items-center gap-4 px-4 py-3 capitalize"
                                     fullWidth
                                   >
                                     {subIcon}
@@ -137,7 +141,7 @@ export function Sidenav({ brandImg, brandName, routes }) {
                             ? "white"
                             : "blue-gray"
                         }
-                        className="flex items-center gap-4 px-4 capitalize"
+                        className="flex items-center gap-4 px-4 py-3 capitalize"
                         fullWidth
                       >
                         {icon}
@@ -160,9 +164,10 @@ export function Sidenav({ brandImg, brandName, routes }) {
   );
 }
 
+// ... (sisa kode tetap sama)
 Sidenav.defaultProps = {
-  brandImg: "/img/logo-ct.png",
-  brandName: "Material Tailwind React",
+  brandImg: "/img/Logo Sibenteng.png",
+  brandName: "Sistem Inventaris",
 };
 
 Sidenav.propTypes = {

@@ -18,7 +18,6 @@ import {
   Home as AdminHome, 
   DataPengguna, 
   DataBarang, 
-  Profil, 
   EditPengguna,
   TambahPengguna,
   TambahBarang,
@@ -47,7 +46,8 @@ import {
     TambahPeminjaman, 
     TambahPenghapusan, 
     DataUsulanSaya,
-    DataPeminjamanSaya 
+    DataPeminjamanSaya,
+    DataPenghapusanSaya 
 } from "@/pages/ppk";
 
 import { Home as KabidHome } from "@/pages/kepala-bidang";
@@ -74,7 +74,6 @@ const routes = [
       { icon: <DocumentPlusIcon {...icon} />, name: "Rencana Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
       { icon: <ClipboardDocumentListIcon {...icon} />, name: "Data Peminjaman", path: "/data-peminjaman", element: <DataPeminjaman /> },
       { icon: <TrashIcon {...icon} />, name: "Data Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
-      { icon: <RectangleStackIcon {...icon} />, name: "Profil", path: "/profil", element: <Profil /> },
       { icon: <DocumentChartBarIcon {...icon} />, name: "Laporan", path: "/laporan", element: <Laporan /> },
       // Rute tanpa navigasi 
       { path: "/edit-pengguna/:id", element: <EditPengguna /> },
@@ -96,15 +95,18 @@ const routes = [
     role: "Pengurus Barang",
     pages: [
       { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <PengurusBarangHome /> },
+      { icon: <DocumentPlusIcon {...icon} />, name: "Buat Usulan Pengadaan", path: "/tambah-pengadaan", element: <TambahPengadaan /> },
+      { icon: <ClipboardDocumentListIcon {...icon} />, name: "Buat Usulan Peminjaman", path: "/tambah-peminjaman", element: <TambahPeminjaman /> },
       { icon: <TableCellsIcon {...icon} />, name: "Data Barang", path: "/data-barang", element: <DataBarang /> },
       { icon: <CheckBadgeIcon {...icon} />, name: "Validasi Transaksi",
         subRoutes: [
-          { icon: <DocumentPlusIcon {...icon} />, name: "Validasi Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
-          { icon: <ClipboardDocumentListIcon {...icon} />, name: "Validasi Peminjaman", path: "/data-peminjaman", element: <DataPeminjaman /> },
-          { icon: <TrashIcon {...icon} />, name: "Validasi Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
+          { icon: <DocumentPlusIcon {...icon} />, name: "Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
+          { icon: <ClipboardDocumentListIcon {...icon} />, name: "Peminjaman", path: "/data-peminjaman", element: <DataPeminjaman /> },
+          { icon: <TrashIcon {...icon} />, name: "Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
         ]
       },
       // Rute tanpa navigasi
+      { path: "/tambah-pengadaan", element: <TambahPengadaan /> },
       { path: "/tambah-barang", element: <TambahBarang /> },
       { path: "/edit-barang/:id", element: <EditBarang /> },
       { path: "/detail-pengadaan/:id", element: <DetailPengadaan /> },
@@ -121,11 +123,14 @@ const routes = [
     pages: [
       { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <PenataUsahaBarangHome /> },
       { icon: <TableCellsIcon {...icon} />, name: "Data Barang", path: "/data-barang", element: <DataBarang /> },
-      { icon: <CheckBadgeIcon {...icon} />, name: "Validasi Transaksi",
+      {
+        icon: <CheckBadgeIcon {...icon} />,
+        name: "Validasi Transaksi",
         subRoutes: [
-            { icon: <TableCellsIcon {...icon} />, name: "Validasi Pendataan Barang", path: "/data-barang", element: <DataBarang /> },
-            { icon: <DocumentPlusIcon {...icon} />, name: "Validasi Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
-            { icon: <TrashIcon {...icon} />, name: "Validasi Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
+          { icon: <TableCellsIcon {...icon} />, name: "Pendataan Barang", path: "/data-barang", element: <DataBarang /> },
+          { icon: <ClipboardDocumentListIcon {...icon} />, name: "Peminjaman", path: "/data-peminjaman", element: <DataPeminjaman /> },
+          { icon: <DocumentPlusIcon {...icon} />, name: "Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
+          { icon: <TrashIcon {...icon} />, name: "Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
         ]
       },
       // Rute tanpa navigasi
@@ -133,6 +138,7 @@ const routes = [
       { path: "/detail-penghapusan/:id", element: <DetailPenghapusan /> },
       { path: "/validasi-barang/:id", element: <ValidasiBarang /> }, 
       { path: "/detail-barang/:id", element: <DetailBarang /> },
+      { path: "/detail-peminjaman/:id", element: <DetailPeminjaman /> },
     ],
   },
   // --- Rute untuk PPK ---
@@ -141,16 +147,36 @@ const routes = [
     role: "PPK",
     pages: [
       { icon: <HomeIcon {...icon} />, name: "Dashboard", path: "/home", element: <PpkHome /> },
-      { icon: <TableCellsIcon {...icon} />, name: "Lihat Data Barang", path: "/data-barang", element: <DataBarang /> },
-      { icon: <DocumentMagnifyingGlassIcon {...icon} />, name: "Lacak Usulan Saya", path: "/usulan-saya", element: <DataUsulanSaya /> },
-      { icon: <DocumentPlusIcon {...icon} />, name: "Buat Usulan Pengadaan", path: "/tambah-pengadaan", element: <TambahPengadaan /> },
-      { icon: <ClipboardDocumentListIcon {...icon} />, name: "Ajukan Peminjaman", path: "/tambah-peminjaman", element: <TambahPeminjaman /> },
-      { icon: <TrashIcon {...icon} />, name: "Ajukan Penghapusan", path: "/tambah-penghapusan", element: <TambahPenghapusan /> },
-      { icon: <ClipboardDocumentListIcon {...icon} />, name: "Peminjaman Saya", path: "/peminjaman-saya", element: <DataPeminjamanSaya /> },
+      { icon: <TableCellsIcon {...icon} />, name: "Data Barang", path: "/data-barang", element: <DataBarang /> },
+      {
+        icon: <DocumentPlusIcon {...icon} />,
+        name: "Pengadaan",
+        subRoutes: [
+          { icon: <DocumentPlusIcon {...icon} />, name: "Ajukan Pengadaan", path: "/tambah-pengadaan", element: <TambahPengadaan /> },
+          { icon: <DocumentMagnifyingGlassIcon {...icon} />, name: "Lacak Usulan Saya", path: "/usulan-saya", element: <DataUsulanSaya /> },
+        ]
+      },
+      {
+        icon: <ClipboardDocumentListIcon {...icon} />,
+        name: "Peminjaman",
+        subRoutes: [
+          { icon: <ClipboardDocumentListIcon {...icon} />, name: "Ajukan Peminjaman", path: "/tambah-peminjaman", element: <TambahPeminjaman /> },
+          { icon: <DocumentMagnifyingGlassIcon {...icon} />, name: "Lacak Peminjaman", path: "/peminjaman-saya", element: <DataPeminjamanSaya /> },
+        ]
+      },
+      {
+        icon: <TrashIcon {...icon} />,
+        name: "Penghapusan Barang",
+        subRoutes: [
+          { icon: <TrashIcon {...icon} />, name: "Ajukan Penghapusan", path: "/tambah-penghapusan", element: <TambahPenghapusan /> },
+          { icon: <DocumentMagnifyingGlassIcon {...icon} />, name: "Lacak Penghapusan", path: "/penghapusan-saya", element: <DataPenghapusanSaya /> },
+        ]
+      },
       // Rute tanpa navigasi
       { path: "/detail-pengadaan/:id", element: <DetailPengadaan /> },
       { path: "/detail-peminjaman/:id", element: <DetailPeminjaman /> },
       { path: "/detail-penghapusan/:id", element: <DetailPenghapusan /> },
+      { path: "/detail-barang/:id", element: <DetailBarang /> },
     ],
   },
   // --- Rute untuk Kepala Bidang ---
@@ -171,8 +197,8 @@ const routes = [
       { icon: <TableCellsIcon {...icon} />, name: "Lihat Data Barang", path: "/data-barang", element: <DataBarang /> },
       { icon: <CheckBadgeIcon {...icon} />, name: "Persetujuan",
         subRoutes: [
-            { icon: <DocumentPlusIcon {...icon} />, name: "Persetujuan Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
-            { icon: <TrashIcon {...icon} />, name: "Persetujuan Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
+            { icon: <DocumentPlusIcon {...icon} />, name: "Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
+            { icon: <TrashIcon {...icon} />, name: "Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
         ]
       },
       // Rute tanpa navigasi

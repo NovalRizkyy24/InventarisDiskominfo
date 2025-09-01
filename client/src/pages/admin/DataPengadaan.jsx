@@ -22,9 +22,10 @@ const getStatusColor = (status) => {
   switch (status) {
     case 'Diajukan': return 'blue';
     case 'Divalidasi Pengurus Barang': return 'light-blue';
-    case 'Divalidasi Penatausahaan': return 'cyan';
-    case 'Disetujui Kepala Dinas': return 'teal';
-    case 'Selesai': return 'green';
+    case 'Divalidasi Penatausahaan': return 'teal'; 
+    case 'Menunggu Persetujuan': return 'orange';
+    case 'Disetujui Kepala Dinas': return 'green';
+    case 'Selesai': return 'blue-gray'; 
     case 'Ditolak': return 'red';
     default: return 'gray';
   }

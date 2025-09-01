@@ -11,11 +11,21 @@ const formatDateTime = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
     return new Date(dateString).toLocaleString("id-ID", options).replace(/\./g, ':').replace('pukul', 'Pukul');
 };
-const getStatusColor = (status) => ({'Diajukan': 'blue', 'Divalidasi Pengurus Barang': 'green', 'Selesai': 'gray', 'Ditolak': 'red'})[status] || 'gray';
 
-// --- Komponen Form Berita Acara (Eksternal) ---
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'Diajukan': return 'blue';
+    case 'Divalidasi Pengurus Barang': return 'light-blue';
+    case 'Divalidasi Penatausahaan': return 'teal'; 
+    case 'Menunggu Persetujuan': return 'orange';
+    case 'Disetujui Kepala Dinas': return 'green';
+    case 'Selesai': return 'blue-gray'; 
+    case 'Ditolak': return 'red';
+    default: return 'gray';
+  }
+};
+
 const BeritaAcaraForm = ({ peminjamanId, dataPeminjaman, onSaveSuccess }) => {
-  // ... (Kode untuk BeritaAcaraForm tidak ada perubahan)
   const [pihakKedua, setPihakKedua] = useState({
     nama_pihak_kedua: "",
     nip_pihak_kedua: "",
@@ -129,47 +139,59 @@ const BeritaAcaraForm = ({ peminjamanId, dataPeminjaman, onSaveSuccess }) => {
   );
 };
 
-// --- Komponen ActionButtons yang dipisah ---
 const ActionButtons = ({ peminjaman, user, openConfirmModal, handleUpdateStatus, setIsDeleteModalOpen, catatan, setCatatan }) => {
   if (!peminjaman || !user) return null;
-  const { status, user_peminjam_id } = peminjaman;
+  const { status, user_peminjam_id, jenis } = peminjaman;
 
   if (user.id === user_peminjam_id && status === 'Diajukan') {
       return <Button color="red" onClick={() => setIsDeleteModalOpen(true)}>Hapus Pengajuan</Button>;
   }
 
-  if (user.role === 'Pengurus Barang') {
-    if (status === 'Diajukan') {
-      return (
-        <div className="flex flex-col gap-4">
-          <Textarea 
-            label="Catatan (Wajib diisi jika menolak)" 
-            value={catatan} 
-            onChange={(e) => setCatatan(e.target.value)} 
-          />
-          <div className="flex gap-2">
-            <Button 
-              color="green" 
-              onClick={() => openConfirmModal(() => handleUpdateStatus('Divalidasi Pengurus Barang'), 'Konfirmasi Persetujuan', 'Anda yakin ingin menyetujui peminjaman barang ini?', 'Ya, Setujui', 'green')}
-              disabled={!!catatan} 
-            >
-              Setujui Peminjaman
-            </Button>
-            <Button 
-              color="red" 
-              onClick={() => openConfirmModal(() => handleUpdateStatus('Ditolak', catatan), 'Konfirmasi Penolakan', 'Anda yakin ingin menolak peminjaman ini?', 'Ya, Tolak', 'red')}
-              disabled={!catatan}
-            >
-              Tolak
-            </Button>
-          </div>
-        </div>
-      );
+  const renderValidationButtons = (actionText, nextStatus, confirmationMessage) => (
+    <div className="flex flex-col gap-4">
+      <Textarea 
+        label="Catatan (Wajib diisi jika menolak)" 
+        value={catatan} 
+        onChange={(e) => setCatatan(e.target.value)} 
+      />
+      <div className="flex gap-2">
+        <Button 
+          color="green" 
+          onClick={() => openConfirmModal(() => handleUpdateStatus(nextStatus), `Konfirmasi ${actionText}`, confirmationMessage, `Ya, ${actionText}`, 'green')}
+          disabled={!!catatan} 
+        >
+          {actionText}
+        </Button>
+        <Button 
+          color="red" 
+          onClick={() => openConfirmModal(() => handleUpdateStatus('Ditolak', catatan), 'Konfirmasi Penolakan', 'Anda yakin ingin menolak pengajuan ini?', 'Ya, Tolak', 'red')}
+          disabled={!catatan} 
+        >
+          Tolak
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (jenis === 'Internal') {
+    if (user.role === 'Pengurus Barang' && status === 'Diajukan') {
+      return renderValidationButtons('Validasi', 'Divalidasi Pengurus Barang', 'Anda yakin ingin memvalidasi peminjaman ini?');
     }
-    if (status === 'Divalidasi Pengurus Barang') {
-      return <Button color="blue" onClick={() => openConfirmModal(() => handleUpdateStatus('Selesai'), 'Konfirmasi Pengembalian', 'Anda yakin ingin menandai barang ini sudah kembali?', 'Ya, Tandai Kembali', 'blue')}>Tandai Sudah Kembali</Button>;
+    if (user.role === 'Penata Usaha Barang' && status === 'Divalidasi Pengurus Barang') {
+      return renderValidationButtons('Setujui', 'Divalidasi Penatausahaan', 'Anda yakin ingin menyetujui peminjaman ini?');
     }
   }
+
+  if (jenis === 'Eksternal') {
+    if (user.role === 'Penata Usaha Barang' && status === 'Diajukan') {
+      return renderValidationButtons('Setujui', 'Divalidasi Penatausahaan', 'Anda yakin ingin menyetujui peminjaman eksternal ini?');
+    }
+  }
+  
+  if (status === 'Divalidasi Penatausahaan' && (user.role === 'Pengurus Barang' || user.role === 'Admin')) {
+    return <Button color="blue" onClick={() => openConfirmModal(() => handleUpdateStatus('Selesai'), 'Konfirmasi Pengembalian', 'Anda yakin ingin menandai barang ini sudah kembali?', 'Ya, Tandai Kembali', 'blue')}>Tandai Sudah Kembali</Button>;
+  }
+
   return null;
 };
 
@@ -285,23 +307,58 @@ export function DetailPeminjaman() {
     <div className="mt-12 mb-8 flex flex-col gap-8">
       <Card>
         <CardHeader variant="gradient" color="gray" className="p-6 flex justify-between items-center">
-          <Typography variant="h6" color="white">Detail Peminjaman: {peminjaman?.nama_barang || '...'}</Typography>
+          <Typography variant="h6" color="white">Detail Peminjaman: {peminjaman?.nomor_usulan || '...'}</Typography>
           <Chip variant="gradient" color={getStatusColor(peminjaman?.status)} value={peminjaman?.status || '...'} />
         </CardHeader>
         <CardBody>
             {error && <Typography color="red" className="mb-4 text-center">{error}</Typography>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><Typography variant="small" className="font-bold">Nama Peminjam:</Typography><Typography>{peminjaman?.nama_peminjam || '-'}</Typography></div>
-                <div><Typography variant="small" className="font-bold">Kode Barang:</Typography><Typography>{peminjaman?.kode_barang || '-'}</Typography></div>
-                <div><Typography variant="small" className="font-bold">Tanggal Pinjam:</Typography><Typography>{formatDate(peminjaman?.tanggal_mulai_pinjam)}</Typography></div>
-                <div><Typography variant="small" className="font-bold">Tanggal Kembali:</Typography><Typography>{formatDate(peminjaman?.tanggal_rencana_kembali)}</Typography></div>
                 <div><Typography variant="small" className="font-bold">Jenis Peminjaman:</Typography><Typography>{peminjaman?.jenis || '-'}</Typography></div>
+                <div><Typography variant="small" className="font-bold">Tanggal Pinjam:</Typography><Typography>{formatDate(peminjaman?.tanggal_mulai_pinjam)}</Typography></div>
+                <div><Typography variant="small" className="font-bold">Tanggal Rencana Kembali:</Typography><Typography>{formatDate(peminjaman?.tanggal_rencana_kembali)}</Typography></div>
                 <div className="md:col-span-2"><Typography variant="small" className="font-bold">Keperluan:</Typography><Typography>{peminjaman?.keperluan || '-'}</Typography></div>
+                {peminjaman?.jenis === 'Eksternal' && (user?.role === 'Penata Usaha Barang' || user?.role === 'Admin') && (
+                  <div className="md:col-span-2">
+                    <Typography variant="small" className="font-bold">Surat Peminjaman:</Typography>
+                    <a href={`http://localhost:5000/${peminjaman.surat_peminjaman_url}`} target="_blank" rel="noopener noreferrer">
+                      <Button color="blue" size="sm" className="mt-1">
+                        Lihat Surat
+                      </Button>
+                    </a>
+                  </div>
+                )}
+            </div>
+            
+            <div className="mt-6">
+                <Typography variant="h6" color="blue-gray" className="mb-2">Daftar Barang Dipinjam</Typography>
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[640px] table-auto">
+                        <thead>
+                            <tr>
+                                {["Nama Barang", "Kode Barang", "Merk/Tipe"].map(h => 
+                                    <th key={h} className="border-b border-blue-gray-50 py-3 px-5 text-left">
+                                        <Typography variant="small" className="text-[11px] font-bold uppercase text-blue-gray-400">{h}</Typography>
+                                    </th>
+                                )}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {peminjaman?.details?.map(barang => (
+                                <tr key={barang.id}>
+                                    <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-semibold">{barang.nama_barang}</Typography></td>
+                                    <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs">{barang.kode_barang}</Typography></td>
+                                    <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs">{barang.merk || '-'} / {barang.tipe || '-'}</Typography></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </CardBody>
       </Card>
       
-      {peminjaman?.status === 'Divalidasi Pengurus Barang' && peminjaman?.jenis === 'Eksternal' && 
+      {peminjaman?.status === 'Divalidasi Penatausahaan' && peminjaman?.jenis === 'Eksternal' && 
         <BeritaAcaraForm 
           peminjamanId={id} 
           dataPeminjaman={peminjaman} 
@@ -309,7 +366,7 @@ export function DetailPeminjaman() {
         />
       }
 
-      {peminjaman?.status === 'Divalidasi Pengurus Barang' && peminjaman?.jenis === 'Internal' &&
+      {peminjaman?.status === 'Divalidasi Penatausahaan' && peminjaman?.jenis === 'Internal' &&
         <Card>
             <CardHeader variant="gradient" color="blue-gray" className="p-6">
                 <Typography variant="h6" color="white">
@@ -318,22 +375,8 @@ export function DetailPeminjaman() {
             </CardHeader>
             <CardBody className="flex flex-col gap-4">
                 <Typography>
-                    Data Pihak Kedua (peminjam) diambil otomatis dari data akun Anda:
+                    Data Pihak Kedua (peminjam) diambil otomatis dari data akun Anda. Pihak Pertama adalah Pengurus Barang yang melakukan validasi.
                 </Typography>
-                <div className="p-4 border rounded-lg grid grid-cols-1 gap-2 bg-blue-gray-50/50">
-                    <div>
-                        <Typography variant="small" className="font-bold">Nama Peminjam (Pihak Kedua):</Typography>
-                        <Typography>{peminjaman?.nama_peminjam || '-'}</Typography>
-                    </div>
-                    <div>
-                        <Typography variant="small" className="font-bold">NIP Pihak Kedua:</Typography>
-                        <Typography>{peminjaman?.nip_peminjam || '-'}</Typography>
-                    </div>
-                    <div>
-                        <Typography variant="small" className="font-bold">Jabatan Pihak Kedua:</Typography>
-                        <Typography>{peminjaman?.jabatan_peminjam || '-'}</Typography>
-                    </div>
-                </div>
             </CardBody>
             <CardFooter className="flex justify-end">
                 <Button onClick={handleDownloadInternalBA} color="green">Download PDF</Button>

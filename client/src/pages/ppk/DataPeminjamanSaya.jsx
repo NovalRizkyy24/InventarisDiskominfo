@@ -51,7 +51,7 @@ export function DataPeminjamanSaya() {
           <table className="w-full min-w-[640px] table-auto">
             <thead>
               <tr>
-                {["Nama Barang", "Tanggal Pinjam", "Tanggal Kembali", "Jenis Pinjaman", "Status", "Aksi"].map((el) => (
+                {["No. Usulan", "Nama Barang", "Tanggal Pinjam", "Status", "Aksi"].map((el) => (
                   <th key={el} className="border-b border-blue-gray-50 py-3 px-5 text-left">
                     <Typography variant="small" className="text-[11px] font-bold uppercase text-blue-gray-400">{el}</Typography>
                   </th>
@@ -61,20 +61,11 @@ export function DataPeminjamanSaya() {
             <tbody>
               {peminjaman.map((item) => (
                 <tr key={item.id}>
-                  <td className="py-3 px-5 border-b"><Typography className="text-xs font-semibold">{item.nama_barang}</Typography></td>
+                  <td className="py-3 px-5 border-b"><Typography className="text-xs font-semibold">{item.nomor_usulan || '-'}</Typography></td>
+                  <td className="py-3 px-5 border-b"><Typography className="text-xs font-semibold">{item.nama_barang || '-'}</Typography></td>
                   <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{formatDate(item.tanggal_mulai_pinjam)}</Typography></td>
-                  <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{formatDate(item.tanggal_rencana_kembali)}</Typography></td>
                   <td className="py-3 px-5 border-b">
-                    <Chip 
-                      variant="ghost" 
-                      size="sm"
-                      color={item.jenis === 'Internal' ? 'blue' : 'teal'} 
-                      value={item.jenis} 
-                      className="w-fit"
-                    />
-                  </td>
-                  <td className="py-3 px-5 border-b">
-                    <Chip variant="gradient" color={getStatusColor(item.status)} value={item.status} className="py-0.5 px-2 text-[11px]" />
+                    <Chip variant="gradient" color={getStatusColor(item.status)} value={item.status || '...'} className="py-0.5 px-2 text-[11px]" />
                   </td>
                   <td className="py-3 px-5 border-b">
                     <Link to={`/${layout}/detail-peminjaman/${item.id}`}>

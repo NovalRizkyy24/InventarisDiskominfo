@@ -7,7 +7,7 @@ export default defineConfig({
     alias: [{ find: "@", replacement: "/src" }],
   },
   server: {
-    // host: true, 
+    host: true, 
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

@@ -8,6 +8,8 @@ import {
     Typography,
     Button,
     Chip,
+    Checkbox,
+    Textarea
 } from "@material-tailwind/react";
 import { useAuth } from "@/hooks/useAuth";
 import toast from 'react-hot-toast';
@@ -15,20 +17,90 @@ import { ConfirmationModal, ConfirmationProses } from "@/widgets/layout";
 
 const formatDate = (dateString) => new Date(dateString).toLocaleDateString("id-ID", { year: 'numeric', month: 'long', day: 'numeric' });
 const formatDateTime = (dateString) => {
-    const options = {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-    };
-    return new Date(dateString)
-        .toLocaleString("id-ID", options)
-        .replace(/\./g, ':')
-        .replace('pukul', 'Pukul');
+    if (!dateString) return "-";
+    const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
+    return new Date(dateString).toLocaleString("id-ID", options).replace(/\./g, ':').replace('pukul', 'Pukul');
 };
-const getStatusColor = (status) => ({'Diajukan': 'blue', 'Divalidasi Pengurus Barang': 'light-blue', 'Divalidasi Penatausahaan': 'cyan', 'Disetujui Kepala Dinas': 'teal', 'Selesai': 'green', 'Ditolak': 'red'})[status] || 'gray';
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'Diajukan': return 'blue';
+    case 'Divalidasi Pengurus Barang': return 'light-blue';
+    case 'Divalidasi Penatausahaan': return 'teal'; 
+    case 'Menunggu Persetujuan': return 'orange';
+    case 'Disetujui Kepala Dinas': return 'green';
+    case 'Selesai': return 'blue-gray'; 
+    case 'Ditolak': return 'red';
+    default: return 'gray';
+  }
+};
+
+const ValidationRow = ({ item, isPenatausahaan, checkedItems, handleCheckboxChange }) => {
+    const total = item.jumlah * item.harga_satuan;
+    const isChecked = checkedItems[item.id];
+
+    let approvalStatus;
+    if (item.disetujui === true) {
+        approvalStatus = <Chip variant="ghost" color="green" size="sm" value="Disetujui" className="w-fit" />;
+    } else if (item.disetujui === false) {
+        approvalStatus = <Chip variant="ghost" color="red" size="sm" value="Ditolak" className="w-fit" />;
+    }
+
+    return (
+        <tr key={item.id}>
+            {isPenatausahaan && (
+                <td className="py-3 px-5 border-b">
+                    <Checkbox checked={!!isChecked} onChange={() => handleCheckboxChange(item.id)} />
+                </td>
+            )}
+            <td className="py-3 px-5 border-b"><Typography className="text-xs font-semibold">{item.nama_barang_usulan}</Typography></td>
+            <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{item.jumlah}</Typography></td>
+            <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{item.satuan}</Typography></td>
+            <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">Rp {Number(item.harga_satuan).toLocaleString('id-ID')}</Typography></td>
+            <td className="py-3 px-5 border-b min-w-[120px]"><Typography className="text-xs font-semibold">Rp {total.toLocaleString('id-ID')}</Typography></td>
+            <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{item.spesifikasi_usulan}</Typography></td>
+            {approvalStatus && (
+                 <td className="py-3 px-5 border-b">{approvalStatus}</td>
+            )}
+        </tr>
+    );
+};
+
+const ActionButtons = ({ usulan, user, handleUpdateStatus, openConfirmModal, setIsDeleteModalOpen, catatan, setCatatan, handleSaveValidation }) => {
+    if (!usulan || !user) return null;
+    const { status, user_pengusul_id } = usulan;
+    const { role, id: userId } = user;
+
+    if (status === 'Diajukan' && (user_pengusul_id === userId || role === 'Admin')) {
+        return ( <Button color="red" onClick={() => setIsDeleteModalOpen(true)}>Hapus Usulan</Button> );
+    }
+    if (status === 'Diajukan' && role === 'Penata Usaha Barang') {
+        return ( <Button color="green" onClick={() => openConfirmModal(handleSaveValidation, 'Konfirmasi Validasi', 'Anda yakin ingin menyimpan hasil validasi barang? Proses ini akan mengubah status usulan.', 'Ya, Simpan', 'green')}>Simpan Validasi Barang</Button> );
+    }
+    if (status === 'Menunggu Persetujuan' && role === 'Kepala Dinas') {
+        return (
+            <div className="flex flex-col gap-4">
+                <Textarea 
+                    label="Catatan (Wajib diisi jika menolak)" 
+                    value={catatan} 
+                    onChange={(e) => setCatatan(e.target.value)} 
+                />
+                <div className="flex gap-2">
+                    <Button color="green" onClick={() => openConfirmModal(() => handleUpdateStatus('Disetujui Kepala Dinas'), 'Konfirmasi Persetujuan', 'Anda yakin ingin menyetujui usulan ini?', 'Ya, Setujui', 'green')} disabled={!!catatan}>
+                        Setujui
+                    </Button>
+                    <Button color="red" onClick={() => openConfirmModal(() => handleUpdateStatus('Ditolak', catatan), 'Konfirmasi Penolakan', 'Anda yakin ingin menolak usulan ini?', 'Ya, Tolak', 'red')} disabled={!catatan}>
+                        Tolak
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+    if (status === 'Disetujui Kepala Dinas' && role === 'Admin') {
+        return <Button color="green" onClick={() => openConfirmModal(() => handleUpdateStatus('Selesai'), 'Konfirmasi Selesai', 'Apakah Anda yakin ingin menandai usulan ini sebagai "Selesai"?', 'Ya, Tandai Selesai', 'green')}>Tandai Selesai</Button>;
+    }
+    return <Typography variant="small" color="blue-gray">Tidak ada aksi yang tersedia untuk peran Anda.</Typography>;
+};
 
 export function DetailPengadaan() {
     const { id } = useParams();
@@ -38,15 +110,10 @@ export function DetailPengadaan() {
     const [logData, setLogData] = useState([]);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
+    const [catatan, setCatatan] = useState("");
+    const [checkedItems, setCheckedItems] = useState({});
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [confirmState, setConfirmState] = useState({
-        isOpen: false,
-        title: "",
-        message: "",
-        action: null,
-        actionText: "Ya, Lanjutkan",
-        actionColor: "green",
-    });
+    const [confirmState, setConfirmState] = useState({ isOpen: false, action: null, title: "", message: "", actionText: "Ya", actionColor: "green" });
 
     const fetchDetailAndLogs = async () => {
         setLoading(true);
@@ -56,6 +123,14 @@ export function DetailPengadaan() {
             if (!usulanResponse.ok) throw new Error("Gagal mengambil detail usulan");
             const usulanData = await usulanResponse.json();
             setUsulan(usulanData);
+
+            if (usulanData.details) {
+                const initialChecks = {};
+                usulanData.details.forEach(item => {
+                    initialChecks[item.id] = item.disetujui === null ? false : item.disetujui;
+                });
+                setCheckedItems(initialChecks);
+            }
 
             const logResponse = await fetch(`/api/pengadaan/${id}/logs`, { headers: { Authorization: `Bearer ${token}` } });
             if (!logResponse.ok) throw new Error("Gagal mengambil riwayat validasi");
@@ -73,14 +148,14 @@ export function DetailPengadaan() {
         fetchDetailAndLogs();
     }, [id]);
 
-    const handleUpdateStatus = async (status_baru, catatan = "") => {
+    const handleUpdateStatus = async (status_baru, catatanPenolakan = null) => {
         const token = localStorage.getItem("authToken");
         const toastId = toast.loading('Memperbarui status...');
         try {
             const response = await fetch(`/api/pengadaan/${id}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ status_baru, catatan }),
+                body: JSON.stringify({ status_baru, catatan: catatanPenolakan }),
             });
             if (!response.ok) throw new Error((await response.json()).message || 'Gagal update status');
             
@@ -89,6 +164,23 @@ export function DetailPengadaan() {
         } catch (err) {
             toast.error(err.message, { id: toastId });
             setError(err.message);
+        }
+    };
+
+    const handleSaveValidation = async () => {
+        const token = localStorage.getItem("authToken");
+        const toastId = toast.loading('Menyimpan hasil validasi...');
+        try {
+            const response = await fetch(`/api/pengadaan/${id}/validate-items`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ validatedItems: checkedItems }),
+            });
+            if (!response.ok) throw new Error("Gagal menyimpan validasi.");
+            toast.success("Validasi berhasil disimpan!", { id: toastId });
+            fetchDetailAndLogs();
+        } catch (err) {
+            toast.error(err.message, { id: toastId });
         }
     };
     
@@ -111,15 +203,15 @@ export function DetailPengadaan() {
         }
     };
 
+    const handleCheckboxChange = (detailId) => {
+        setCheckedItems(prev => ({
+            ...prev,
+            [detailId]: !prev[detailId]
+        }));
+    };
+
     const openConfirmModal = (action, title, message, actionText, actionColor) => {
-        setConfirmState({
-            isOpen: true,
-            title,
-            message,
-            action,
-            actionText,
-            actionColor,
-        });
+        setConfirmState({ isOpen: true, title, message, action, actionText, actionColor });
     };
 
     const handleConfirmAction = () => {
@@ -127,50 +219,6 @@ export function DetailPengadaan() {
             confirmState.action();
         }
         setConfirmState({ isOpen: false, action: null });
-    };
-
-    const ActionButtons = () => {
-        if (!usulan || !user) return null;
-        const { status, user_pengusul_id } = usulan;
-        const { role, id: userId } = user;
-
-        const handleValidationClick = (newStatus, type = 'validasi') => {
-            const actionText = type === 'setujui' ? 'Ya, Setujui' : 'Ya, Validasi';
-            openConfirmModal(
-                () => handleUpdateStatus(newStatus),
-                `Konfirmasi ${type === 'setujui' ? 'Persetujuan' : 'Validasi'}`,
-                `Apakah Anda yakin ingin ${type} usulan ini? Proses tidak dapat dibatalkan.`,
-                actionText,
-                "green"
-            );
-        };
-    
-        const handleRejectClick = () => {
-            openConfirmModal(
-                () => handleUpdateStatus('Ditolak'),
-                'Konfirmasi Penolakan',
-                'Apakah Anda yakin ingin menolak usulan ini? Proses tidak dapat dibatalkan.',
-                'Ya, Tolak',
-                "red"
-            );
-        };
-
-        if (status === 'Diajukan' && user_pengusul_id === userId) {
-            return ( <Button color="red" onClick={() => setIsDeleteModalOpen(true)}>Hapus Usulan</Button> );
-        }
-        if (status === 'Diajukan' && role === 'Pengurus Barang') {
-            return ( <div className="flex gap-2"> <Button color="green" onClick={() => handleValidationClick('Divalidasi Pengurus Barang')}>Validasi</Button> <Button color="red" onClick={handleRejectClick}>Tolak</Button> </div> );
-        }
-        if (status === 'Divalidasi Pengurus Barang' && role === 'Penata Usaha Barang') {
-            return ( <div className="flex gap-2"> <Button color="green" onClick={() => handleValidationClick('Divalidasi Penatausahaan')}>Validasi</Button> <Button color="red" onClick={handleRejectClick}>Tolak</Button> </div> );
-        }
-        if (status === 'Divalidasi Penatausahaan' && role === 'Kepala Dinas') {
-            return ( <div className="flex gap-2"> <Button color="green" onClick={() => handleValidationClick('Disetujui Kepala Dinas', 'setujui')}>Setujui</Button> <Button color="red" onClick={handleRejectClick}>Tolak</Button> </div> );
-        }
-        if (status === 'Disetujui Kepala Dinas' && role === 'Admin') {
-            return <Button color="green" onClick={() => openConfirmModal(() => handleUpdateStatus('Selesai'), 'Konfirmasi Selesai', 'Apakah Anda yakin ingin menandai usulan ini sebagai "Selesai"?', 'Ya, Tandai Selesai', 'green')}>Tandai Selesai</Button>;
-        }
-        return <Typography variant="small" color="blue-gray">Tidak ada aksi yang tersedia untuk peran Anda.</Typography>;
     };
 
     const handleDownload = async () => {
@@ -203,6 +251,13 @@ export function DetailPengadaan() {
     if (error && !usulan) return <Typography color="red" className="text-center font-semibold mt-12">Error: {error}</Typography>;
     if (!usulan) return <Typography className="text-center mt-12">Data usulan tidak ditemukan.</Typography>;
 
+    const isPenatausahaan = user?.role === 'Penata Usaha Barang' && usulan?.status === 'Diajukan';
+    const isAfterValidation = ['Menunggu Persetujuan', 'Disetujui Kepala Dinas', 'Selesai', 'Ditolak'].includes(usulan?.status);
+
+    let tableHeaders = ["Nama Barang", "Jumlah", "Satuan", "Harga Satuan", "Total", "Spesifikasi"];
+    if(isPenatausahaan) tableHeaders.unshift("Pilih");
+    if(isAfterValidation) tableHeaders.push("Status");
+
     return (
         <div className="mt-12 mb-8 flex flex-col gap-8">
             <Card>
@@ -211,7 +266,6 @@ export function DetailPengadaan() {
                         <Typography variant="h6" color="white">Rincian Proses Pengadaan Barang</Typography>
                         <Typography variant="small" color="white" className="opacity-80">{usulan.nomor_usulan}</Typography>
                     </div>
-                    {/* --- PERBAIKAN DI SINI --- */}
                     <Chip variant="gradient" color={getStatusColor(usulan.status)} value={usulan.status} />
                 </CardHeader>
                 <CardBody>
@@ -225,32 +279,46 @@ export function DetailPengadaan() {
                         <table className="w-full min-w-[640px] table-auto">
                             <thead>
                                 <tr>
-                                    {["Nama Barang", "Jumlah", "Satuan", "Harga Satuan", "Total", "Spesifikasi"].map(h => <th key={h} className="border-b border-blue-gray-50 py-3 px-5 text-left"><Typography variant="small" className="text-[11px] font-bold uppercase text-blue-gray-400">{h}</Typography></th>)}
+                                    {tableHeaders.map(h => <th key={h} className="border-b border-blue-gray-50 py-3 px-5 text-left"><Typography variant="small" className="text-[11px] font-bold uppercase text-blue-gray-400">{h}</Typography></th>)}
                                 </tr>
                             </thead>
                             <tbody>
-                                {usulan.details && usulan.details.map((item, key) => (
-                                    <tr key={key}>
-                                        <td className="py-3 px-5 border-b"><Typography className="text-xs font-semibold">{item.nama_barang_usulan}</Typography></td>
-                                        <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{item.jumlah}</Typography></td>
-                                        <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{item.satuan}</Typography></td>
-                                        <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">Rp {Number(item.harga_satuan).toLocaleString('id-ID')}</Typography></td>
-                                        <td className="py-3 px-5 border-b"><Typography className="text-xs font-semibold">Rp {(item.jumlah * item.harga_satuan).toLocaleString('id-ID')}</Typography></td>
-                                        <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{item.spesifikasi_usulan}</Typography></td>
-                                    </tr>
+                                {usulan.details && usulan.details.map((item) => (
+                                    <ValidationRow 
+                                        key={item.id}
+                                        item={item}
+                                        isPenatausahaan={isPenatausahaan}
+                                        checkedItems={checkedItems}
+                                        handleCheckboxChange={handleCheckboxChange}
+                                    />
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                </CardBody>
-                <CardFooter className="pt-4 p-6 flex justify-between items-center">
-                    <div><ActionButtons /></div>
-                    <div>
+                    <div className="mt-6 flex justify-end">
                         <Button variant="gradient" onClick={handleDownload} disabled={usulan.status !== 'Disetujui Kepala Dinas' && usulan.status !== 'Selesai'}>
                             Download Surat (PDF)
                         </Button>
                     </div>
-                </CardFooter>
+                </CardBody>
+            </Card>
+
+            <Card>
+                <CardHeader variant="gradient" color="gray" className="p-6">
+                    <Typography variant="h6" color="white">Aksi</Typography>
+                </CardHeader>
+                <CardBody>
+                    <ActionButtons 
+                        usulan={usulan}
+                        user={user}
+                        handleUpdateStatus={handleUpdateStatus}
+                        openConfirmModal={openConfirmModal}
+                        setIsDeleteModalOpen={setIsDeleteModalOpen}
+                        catatan={catatan}
+                        setCatatan={setCatatan}
+                        handleSaveValidation={handleSaveValidation}
+                    />
+                </CardBody>
             </Card>
 
             <Card>

@@ -1,5 +1,18 @@
 const pool = require('../config/db');
 const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
+
+const imageToBase64 = (filePath) => {
+    const imgPath = path.resolve(__dirname, '../..', 'client/public/img', filePath);
+    if (fs.existsSync(imgPath)) {
+        const file = fs.readFileSync(imgPath);
+        return `data:image/png;base64,${Buffer.from(file).toString('base64')}`;
+    }
+    console.error(`File logo tidak ditemukan di: ${imgPath}`);
+    return '';
+};
+
 
 // @desc    Create a new pengadaan request
 // @route   POST /api/pengadaan
@@ -100,8 +113,10 @@ const updateStatusPengadaan = async (req, res) => {
     const finalCatatan = catatan || null;
 
     const validStatuses = [
-        'Divalidasi Pengurus Barang', 'Divalidasi Penatausahaan',
-        'Disetujui Kepala Dinas', 'Selesai', 'Ditolak'
+        'Menunggu Persetujuan',
+        'Disetujui Kepala Dinas', 
+        'Selesai', 
+        'Ditolak'
     ];
     if (!validStatuses.includes(status_baru)) {
         return res.status(400).json({ message: 'Status baru tidak valid.' });
@@ -149,7 +164,6 @@ const updateStatusPengadaan = async (req, res) => {
 const downloadSuratPengadaan = async (req, res) => {
     const { id } = req.params;
     try {
-        // 1. Ambil data (tidak ada perubahan di bagian ini)
         const headerQuery = `
             SELECT rp.*, u_pengusul.nama AS nama_pengusul, u_ppk.nama AS nama_ppk
             FROM rencana_pengadaan rp
@@ -163,17 +177,17 @@ const downloadSuratPengadaan = async (req, res) => {
         }
         const data = headerResult.rows[0];
 
-        const detailQuery = `SELECT * FROM rencana_pengadaan_detail WHERE rencana_id = $1 ORDER BY id ASC;`;
+        const detailQuery = `SELECT * FROM rencana_pengadaan_detail WHERE rencana_id = $1 AND disetujui = TRUE ORDER BY id ASC;`;
         const detailResult = await pool.query(detailQuery, [id]);
         data.details = detailResult.rows;
 
-        // 2. Buat konten HTML untuk PDF (PERUBAHAN DI SINI)
         const itemRows = data.details.map((item, index) => {
             const total = item.jumlah * item.harga_satuan;
             return `
                 <tr>
                     <td style="border: 1px solid black; padding: 8px; text-align: center;">${index + 1}</td>
                     <td style="border: 1px solid black; padding: 8px;">${item.nama_barang_usulan}</td>
+                    <td style="border: 1px solid black; padding: 8px;">${item.spesifikasi_usulan || '-'}</td>
                     <td style="border: 1px solid black; padding: 8px; text-align: center;">${item.jumlah} ${item.satuan}</td>
                     <td style="border: 1px solid black; padding: 8px; text-align: right;">Rp ${Number(item.harga_satuan).toLocaleString('id-ID')}</td>
                     <td style="border: 1px solid black; padding: 8px; text-align: right;">Rp ${total.toLocaleString('id-ID')}</td>
@@ -181,25 +195,43 @@ const downloadSuratPengadaan = async (req, res) => {
             `;
         }).join('');
 
+        const logoBase64 = imageToBase64('Logo Kota Bandung.png');
+
         const htmlContent = `
             <html>
                 <head>
                     <style>
-                        body { font-family: 'Times New Roman', Times, serif; font-size: 12px; margin: 40px; }
-                        table { width: 100%; border-collapse: collapse; }
-                        .text-center { text-align: center; }
-                        .text-right { text-align: right; }
-                        .font-bold { font-weight: bold; }
+                        body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5; margin: 2.5cm; }
+                        .header-table { width: 100%; border-bottom: 3px solid black; margin-bottom: 2em; }
+                        .header-table td { vertical-align: middle; }
+                        .logo { width: 70px; }
+                        .header-text { text-align: center; }
+                        .header-text h4, .header-text h5, .header-text p { margin: 0; }
+                        .header-text h4 { font-size: 16pt; font-weight: bold; }
+                        .header-text h5 { font-size: 14pt; font-weight: bold; }
+                        .header-text p { font-size: 10pt; }
+                        .title { text-align: center; margin-top: 1em; margin-bottom: 1.5em; }
                         .info-table { margin-bottom: 24px; }
                         .info-table td { padding: 2px 0; vertical-align: top; }
+                        .item-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+                        .item-table th, .item-table td { border: 1px solid black; padding: 6px; text-align: left; vertical-align: top; }
+                        .item-table th { font-weight: bold; }
+                        .signature-table { margin-top: 40px; }
+                        .signature-table td { padding-top: 20px; text-align: center; }
+                        p { text-align: justify; }
                     </style>
                 </head>
                 <body>
-                    <div class="text-center" style="border-bottom: 2px solid black; padding-bottom: 8px; margin-bottom: 24px;">
-                        <h3>PEMERINTAH KOTA BANDUNG</h3>
-                        <h4>DINAS KOMUNIKASI DAN INFORMATIKA</h4>
-                        <p style="font-size: 10px;">Jl. Wastukencana No.2, Babakan Ciamis, Bandung</p>
-                    </div>
+                    <table class="header-table">
+                        <tr>
+                            <td style="width:20%; text-align:center;"><img src="${logoBase64}" alt="Logo" class="logo" /></td>
+                            <td style="width:80%;" class="header-text">
+                                <h4>PEMERINTAH KOTA BANDUNG</h4>
+                                <h5>DINAS KOMUNIKASI DAN INFORMATIKA</h5>
+                                <p>Jl. Wastukencana No.2, Babakan Ciamis, Kota Bandung, Jawa Barat 40117</p>
+                            </td>
+                        </tr>
+                    </table>
                     <p class="text-right">Bandung, ${new Date(data.tanggal_usulan).toLocaleDateString('id-ID', { dateStyle: 'long' })}</p>
                     <p>Nomor: ${data.nomor_usulan}</p>
                     <p>Perihal: Usulan Rencana Pengadaan Barang</p>
@@ -230,6 +262,7 @@ const downloadSuratPengadaan = async (req, res) => {
                             <tr>
                                 <th style="border: 1px solid black; padding: 8px;">No</th>
                                 <th style="border: 1px solid black; padding: 8px;">Nama Barang</th>
+                                <th style="border: 1px solid black; padding: 8px;">Spesifikasi</th>
                                 <th style="border: 1px solid black; padding: 8px;">Jumlah</th>
                                 <th style="border: 1px solid black; padding: 8px;">Harga Satuan</th>
                                 <th style="border: 1px solid black; padding: 8px;">Total</th>
@@ -237,18 +270,29 @@ const downloadSuratPengadaan = async (req, res) => {
                         </thead>
                         <tbody>${itemRows}</tbody>
                     </table>
+
+                    <table class="signature-table">
+                        <tr>
+                            <td></td>
+                            <td style="width: 50%;">
+                                Disetujui oleh:<br>
+                                Kepala Dinas Komunikasi dan Informatika
+                                <br><br><br><br><br>
+                                <b><u>Y. Ahmad Brilyana, S.Sos, M.Si</u></b><br>
+                                NIP. 197311271993031003
+                            </td>
+                        </tr>
+                    </table>
                 </body>
             </html>
         `;
 
-        // 3. Gunakan Puppeteer (tidak ada perubahan di bagian ini)
         const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
         const page = await browser.newPage();
         await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
         const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
         await browser.close();
 
-        // 4. Kirim PDF (tidak ada perubahan di bagian ini)
         res.set({
             'Content-Type': 'application/pdf',
             'Content-Length': pdfBuffer.length,
@@ -263,7 +307,6 @@ const downloadSuratPengadaan = async (req, res) => {
 };
 
 const getPengadaanByPengusul = async (req, res) => {
-    // ID pengguna (PPK) diambil dari token JWT yang sudah terverifikasi
     const user_pengusul_id = req.user.id; 
     try {
         const query = `
@@ -315,13 +358,12 @@ const getPengadaanLogs = async (req, res) => {
 
 const deletePengadaan = async (req, res) => {
     const { id: pengadaanId } = req.params;
-    const { id: userId, role } = req.user; // Ambil ID pengguna dari token
+    const { id: userId, role } = req.user;
 
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
 
-        // 1. Ambil data usulan untuk verifikasi
         const usulanQuery = await client.query(
             'SELECT user_pengusul_id, status FROM rencana_pengadaan WHERE id = $1',
             [pengadaanId]
@@ -333,17 +375,14 @@ const deletePengadaan = async (req, res) => {
 
         const usulan = usulanQuery.rows[0];
 
-        // 2. Verifikasi: Hanya pemilik usulan yang bisa menghapus
         if (usulan.user_pengusul_id !== userId) {
             return res.status(403).json({ message: 'Anda tidak memiliki izin untuk menghapus usulan ini.' });
         }
 
-        // 3. Verifikasi: Hanya bisa dihapus jika status masih 'Diajukan'
         if (usulan.status !== 'Diajukan') {
             return res.status(400).json({ message: 'Usulan yang sudah diproses tidak dapat dihapus.' });
         }
 
-        // 4. Lakukan penghapusan (detail akan terhapus otomatis karena ON DELETE CASCADE)
         await client.query('DELETE FROM rencana_pengadaan WHERE id = $1', [pengadaanId]);
 
         await client.query('COMMIT');
@@ -358,6 +397,50 @@ const deletePengadaan = async (req, res) => {
     }
 };
 
+const validatePengadaanItems = async (req, res) => {
+    const { id: pengadaanId } = req.params;
+    const { validatedItems } = req.body;
+    const user_validator_id = req.user.id;
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        for (const detailId in validatedItems) {
+            const isApproved = validatedItems[detailId];
+            await client.query(
+                'UPDATE rencana_pengadaan_detail SET disetujui = $1 WHERE id = $2 AND rencana_id = $3',
+                [isApproved, detailId, pengadaanId]
+            );
+        }
+
+        const currentData = await client.query('SELECT status FROM rencana_pengadaan WHERE id = $1', [pengadaanId]);
+        const status_sebelum = currentData.rows[0].status;
+        const status_sesudah = 'Menunggu Persetujuan';
+
+        await client.query(
+            "UPDATE rencana_pengadaan SET status = $1 WHERE id = $2",
+            [status_sesudah, pengadaanId]
+        );
+
+        const logQuery = `
+            INSERT INTO log_validasi (rencana_pengadaan_id, user_validator_id, status_sebelum, status_sesudah, catatan)
+            VALUES ($1, $2, $3::status_transaksi, $4::status_transaksi, $5);
+        `;
+        await client.query(logQuery, [pengadaanId, user_validator_id, status_sebelum, status_sesudah, "Validasi item oleh Penatausahaan Barang."]);
+
+        await client.query('COMMIT');
+        res.json({ message: 'Validasi barang berhasil disimpan.' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error saat validasi item pengadaan:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server.' });
+    } finally {
+        client.release();
+    }
+};
+
+
 module.exports = {
     createPengadaan,
     getAllPengadaan,
@@ -366,5 +449,6 @@ module.exports = {
     downloadSuratPengadaan,
     getPengadaanByPengusul,
     getPengadaanLogs,
-    deletePengadaan
+    deletePengadaan,
+    validatePengadaanItems
 };

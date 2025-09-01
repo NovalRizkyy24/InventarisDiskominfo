@@ -12,10 +12,23 @@ import { PlusIcon } from "@heroicons/react/24/solid";
 import { useAuth } from "@/hooks/useAuth";
 
 const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString("id-ID") : "-";
-const getStatusColor = (status) => ({ 'Diajukan': 'blue', 
-                                      'Divalidasi Pengurus Barang': 'green', 
-                                      'Selesai': 'gray', 
-                                      'Ditolak': 'red'})[status] || 'gray';
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'Diajukan': return 'blue';
+    case 'Divalidasi Pengurus Barang': return 'light-blue';
+    case 'Divalidasi Penatausahaan': return 'teal'; 
+    case 'Menunggu Persetujuan': return 'orange';
+    case 'Disetujui Kepala Dinas': return 'green';
+    case 'Selesai': return 'blue-gray'; 
+    case 'Ditolak': return 'red';
+    default: return 'gray';
+  }
+};
+
+const getJenisColor = (jenis) => {
+  return jenis === 'Internal' ? 'blue' : 'orange';
+};
 
 export function DataPeminjaman() {
   const [peminjaman, setPeminjaman] = useState([]);
@@ -57,7 +70,8 @@ export function DataPeminjaman() {
           <table className="w-full min-w-[640px] table-auto">
             <thead>
               <tr>
-                {["Nama Barang", "Pengusul", "Tgl Pinjam", "Tgl Kembali", "Jenis Peminjaman", "Status", "Aksi"].map((el) => (
+                {/* 1. Ubah urutan header di sini */}
+                {["No. Usulan", "Tanggal Usulan", "Nama Barang", "Pengusul", "Jenis Peminjaman", "Status", "Aksi"].map((el) => (
                   <th key={el} className="border-b border-blue-gray-50 py-3 px-5 text-left">
                     <Typography variant="small" className="text-[11px] font-bold uppercase text-blue-gray-400">{el}</Typography>
                   </th>
@@ -67,23 +81,23 @@ export function DataPeminjaman() {
             <tbody>
               {peminjaman.map((item) => (
                 <tr key={item.id}>
-                  <td className="py-3 px-5 border-b"><Typography className="text-xs font-semibold">{item.nama_barang}</Typography></td>
-                  <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{item.nama_peminjam}</Typography></td>
-                  <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{formatDate(item.tanggal_mulai_pinjam)}</Typography></td>
-                  <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{formatDate(item.tanggal_rencana_kembali)}</Typography></td>
-                  <td className="py-3 px-5 border-b">
-                    <Chip 
-                        variant="ghost"
-                        size="sm"
-                        color={item.jenis === 'Internal' ? 'blue' : 'teal'}
-                        value={item.jenis || 'Internal'}
-                        className="w-fit"
+                  {/* 2. Sesuaikan urutan data di sini */}
+                  <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-semibold">{item.nomor_usulan}</Typography></td>
+                  <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal">{formatDate(item.tanggal_pengajuan)}</Typography></td>
+                  <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-semibold">{item.nama_barang}</Typography></td>
+                  <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal">{item.nama_peminjam}</Typography></td>
+                  <td className="py-3 px-5 border-b border-blue-gray-50">
+                    <Chip
+                      variant="ghost"
+                      color={getJenisColor(item.jenis)}
+                      value={item.jenis || 'N/A'}
+                      className="py-0.5 px-2 text-[11px] font-medium w-fit"
                     />
                   </td>
-                  <td className="py-3 px-5 border-b">
+                  <td className="py-3 px-5 border-b border-blue-gray-50">
                     <Chip variant="gradient" color={getStatusColor(item.status)} value={item.status} className="py-0.5 px-2 text-[11px]" />
                   </td>
-                  <td className="py-3 px-5 border-b">
+                  <td className="py-3 px-5 border-b border-blue-gray-50">
                     <Link to={`/${layout}/detail-peminjaman/${item.id}`}>
                       <Button variant="text" size="sm">Lihat Detail</Button>
                     </Link>

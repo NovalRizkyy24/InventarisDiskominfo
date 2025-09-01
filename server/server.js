@@ -15,6 +15,7 @@ const penghapusanRoutes = require('./routes/penghapusanRoutes');
 const kategoriRoutes = require('./routes/kategoriRoutes');
 const lokasiRoutes = require('./routes/lokasiRoutes');
 const laporanRoutes = require('./routes/laporanRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -22,7 +23,6 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Daftarkan rute-rute
 app.use('/api', authRoutes);
 app.use('/api', barangRoutes);
 app.use('/api', pengadaanRoutes);
@@ -31,6 +31,8 @@ app.use('/api', penghapusanRoutes);
 app.use('/api', kategoriRoutes);
 app.use('/api', lokasiRoutes);
 app.use('/api', laporanRoutes);
+app.use('/api', dashboardRoutes);
+app.use('/uploads', express.static('uploads'));
 
 app.listen(PORT, () => {
   console.log(`Server berjalan di http://localhost:${PORT}`);

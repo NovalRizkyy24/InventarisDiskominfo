@@ -2,7 +2,6 @@ export * from "./Home";
 export * from "./DataPengguna";
 export * from "./DataBarang";
 export * from "./Notifikasi";
-export * from "./Profil";
 export * from "./EditPengguna";
 export * from "./TambahPengguna";
 export * from "./TambahBarang"; 

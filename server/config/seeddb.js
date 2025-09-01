@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 const users = [
   {
     username: 'admin',
-    password: 'admin123',
+    password: '123',
     nama: 'Admin Sistem',
     jabatan: 'Administrator',
     nip: '199001012015011001',
@@ -13,7 +13,7 @@ const users = [
   },
   {
     username: 'pengurus',
-    password: 'pengurus123',
+    password: '123',
     nama: 'Pengurus Barang Utama',
     jabatan: 'Staf Pengelola Aset',
     nip: '199203152016021003',
@@ -21,7 +21,7 @@ const users = [
   },
   {
     username: 'penatausaha',
-    password: 'penata123',
+    password: '123',
     nama: 'Penata Usaha Barang',
     jabatan: 'Kasubbag Umum & Kepegawaian',
     nip: '198805202014082001',
@@ -37,7 +37,7 @@ const users = [
   },
   {
     username: 'kepalabidang',
-    password: 'bidang123',
+    password: '123',
     nama: 'Kepala Bidang Infrastruktur',
     jabatan: 'Kepala Bidang',
     nip: '198507252010011005',
@@ -45,7 +45,7 @@ const users = [
   },
   {
     username: 'kepaladinas',
-    password: 'dinas123',
+    password: '123',
     nama: 'Kepala Dinas',
     jabatan: 'Kepala Dinas Kominfo',
     nip: '198012012005011007',

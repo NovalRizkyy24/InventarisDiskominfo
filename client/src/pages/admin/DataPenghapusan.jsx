@@ -2,12 +2,27 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardHeader, CardBody, Typography, Button, Chip } from "@material-tailwind/react";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { useAuth } from "@/hooks/useAuth";
 
 const formatDate = (dateString) => new Date(dateString).toLocaleDateString("id-ID");
-const getStatusColor = (status) => ({'Diajukan': 'blue', 'Divalidasi Pengurus Barang': 'light-blue', 'Divalidasi Penatausahaan': 'cyan', 'Disetujui Kepala Dinas': 'green', 'Ditolak': 'red'})[status] || 'gray';
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'Diajukan': return 'blue';
+    case 'Divalidasi Pengurus Barang': return 'light-blue';
+    case 'Divalidasi Penatausahaan': return 'teal'; 
+    case 'Menunggu Persetujuan': return 'orange';
+    case 'Disetujui Kepala Dinas': return 'green';
+    case 'Selesai': return 'blue-gray'; 
+    case 'Ditolak': return 'red';
+    default: return 'gray';
+  }
+};
 
 export function DataPenghapusan() {
   const [usulan, setUsulan] = useState([]);
+  const { user } = useAuth();
+  
+  const layout = user?.role.toLowerCase().replace(/ /g, '-');
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -38,7 +53,7 @@ export function DataPenghapusan() {
           <table className="w-full min-w-[640px] table-auto">
             <thead>
               <tr>
-                {["Nama Barang", "Pengusul", "Tanggal Usulan", "Status", "Aksi"].map((el) => (
+                {["No. Usulan", "Nama Barang", "Pengusul", "Tanggal Usulan", "Status", "Aksi"].map((el) => (
                   <th key={el} className="border-b border-blue-gray-50 py-3 px-5 text-left">
                     <Typography variant="small" className="text-[11px] font-bold uppercase text-blue-gray-400">{el}</Typography>
                   </th>
@@ -48,6 +63,7 @@ export function DataPenghapusan() {
             <tbody>
               {usulan.map((item) => (
                 <tr key={item.id}>
+                  <td className="py-3 px-5 border-b"><Typography className="text-xs font-semibold">{item.nomor_usulan}</Typography></td>
                   <td className="py-3 px-5 border-b"><Typography className="text-xs font-semibold">{item.nama_barang}</Typography></td>
                   <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{item.nama_pengusul}</Typography></td>
                   <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{formatDate(item.tanggal_pengajuan)}</Typography></td>
@@ -55,7 +71,7 @@ export function DataPenghapusan() {
                     <Chip variant="gradient" color={getStatusColor(item.status)} value={item.status} className="py-0.5 px-2 text-[11px]" />
                   </td>
                   <td className="py-3 px-5 border-b">
-                    <Link to={`/admin/detail-penghapusan/${item.id}`}>
+                    <Link to={`/${layout}/detail-penghapusan/${item.id}`}>
                       <Button variant="text" size="sm">Lihat Detail</Button>
                     </Link>
                   </td>

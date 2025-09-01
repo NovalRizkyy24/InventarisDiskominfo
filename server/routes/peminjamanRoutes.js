@@ -7,30 +7,24 @@ const {
     getPeminjamanById,
     getPeminjamanByPeminjam,
     deletePeminjaman,
-    savePihakKedua,       // Pastikan ini diimpor
+    savePihakKedua,
     downloadBeritaAcara,
     getPeminjamanLogs
 } = require('../controllers/peminjamanController');
 const verifyToken = require('../middleware/verifyToken');
+const upload = require('../middleware/uploadSuratPeminjamanExternal'); 
 
 router.use(verifyToken);
 
 router.get('/peminjaman/saya', getPeminjamanByPeminjam);
 
 router.route('/peminjaman')
-    .post(createPeminjaman)
+    .post(upload.single('surat_peminjaman'), createPeminjaman)
     .get(getAllPeminjaman);
     
 router.put('/peminjaman/:id/status', updateStatusPeminjaman);
-
-// --- PASTIKAN BAGIAN INI SUDAH BENAR ---
-// Rute untuk menyimpan data (Method: PUT)
 router.put('/peminjaman/:id/pihak-kedua', savePihakKedua);
-
-// Rute untuk download PDF (Method: GET)
 router.get('/peminjaman/:id/download-berita-acara', downloadBeritaAcara);
-// --- AKHIR PERBAIKAN ---
-
 router.get('/peminjaman/:id/logs', getPeminjamanLogs);
 
 router.route('/peminjaman/:id')

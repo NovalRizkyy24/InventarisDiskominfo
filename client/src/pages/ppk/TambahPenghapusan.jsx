@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Card, CardHeader, CardBody, CardFooter, Typography, Button, Select, Option, Textarea
+  Card, CardHeader, CardBody, CardFooter, Typography, Button, Select, Option, Textarea, Input
 } from "@material-tailwind/react";
 import toast from 'react-hot-toast';
 import { ConfirmationProses } from "@/widgets/layout";
 
-// Komponen baru untuk menampilkan detail dengan lebih jelas
 const DetailItem = ({ label, value }) => (
   <div>
     <Typography variant="small" color="blue-gray" className="font-semibold">
@@ -23,7 +22,8 @@ export function TambahPenghapusan() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ 
     barang_id: "", 
-    alasan_penghapusan: "" 
+    alasan_penghapusan: "",
+    foto_kerusakan: null
   });
   const [selectedBarang, setSelectedBarang] = useState(null);
   const [daftarBarang, setDaftarBarang] = useState([]);
@@ -48,6 +48,10 @@ export function TambahPenghapusan() {
 
   const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   
+  const handleFileChange = (e) => {
+    setFormData(prev => ({ ...prev, foto_kerusakan: e.target.files[0] }));
+  };
+  
   const handleSelectChange = (value) => {
     const barangTerpilih = daftarBarang.find(b => String(b.id) === value);
     setSelectedBarang(barangTerpilih);
@@ -64,17 +68,27 @@ export function TambahPenghapusan() {
     setLoading(true);
     const toastId = toast.loading("Mengajukan usulan...");
     const token = localStorage.getItem("authToken");
+    
+    const dataToSend = new FormData();
+    dataToSend.append('barang_id', formData.barang_id);
+    dataToSend.append('alasan_penghapusan', formData.alasan_penghapusan);
+    if (formData.foto_kerusakan) {
+      dataToSend.append('foto_kerusakan', formData.foto_kerusakan);
+    }
+
     try {
       const response = await fetch('/api/penghapusan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(formData),
+        headers: { Authorization: `Bearer ${token}` },
+        body: dataToSend,
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
       
       toast.success("Usulan penghapusan berhasil diajukan!", { id: toastId });
-      setTimeout(() => navigate('/admin/data-penghapusan'), 1500);
+      
+      setTimeout(() => navigate('/ppk/penghapusan-saya'), 1500);
+
     } catch (err) {
       toast.error(err.message, { id: toastId });
     } finally {
@@ -124,6 +138,14 @@ export function TambahPenghapusan() {
                   />
                 </div>
               )}
+
+              <Input 
+                type="file"
+                label="Upload Foto Bukti Kerusakan"
+                name="foto_kerusakan"
+                onChange={handleFileChange}
+                disabled={loading}
+              />
 
               <Textarea 
                 label="Alasan Penghapusan*" 

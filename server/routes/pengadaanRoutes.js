@@ -8,7 +8,8 @@ const {
     downloadSuratPengadaan,
     getPengadaanByPengusul,
     getPengadaanLogs,
-    deletePengadaan 
+    deletePengadaan,
+    validatePengadaanItems  
 } = require('../controllers/pengadaanController');
 const verifyToken = require('../middleware/verifyToken');
 
@@ -19,6 +20,8 @@ router.route('/pengadaan')
     .get(getAllPengadaan);
 
 router.get('/pengadaan/saya', getPengadaanByPengusul); 
+
+router.put('/pengadaan/:id/validate-items', validatePengadaanItems);
 
 router.route('/pengadaan/:id')
     .get(getPengadaanById)
