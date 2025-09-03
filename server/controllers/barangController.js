@@ -215,6 +215,47 @@ const validateBarang = async (req, res) => {
     }
 };
 
+// const validateBarang = async (req, res) => {
+//     const { id } = req.params;
+//     const { disetujui, catatan } = req.body; 
+//     const user_validator_id = req.user.id;
+
+//     const client = await pool.connect();
+//     try {
+//         await client.query('BEGIN');
+
+//         const currentBarang = await client.query('SELECT status FROM barang WHERE id = $1', [id]);
+//         if (currentBarang.rows.length === 0) {
+//             return res.status(404).json({ message: 'Barang tidak ditemukan' });
+//         }
+//         const status_sebelum = currentBarang.rows[0].status;
+
+//         if (status_sebelum !== 'Menunggu Validasi') {
+//             return res.status(400).json({ message: 'Barang ini tidak dalam status menunggu validasi.' });
+//         }
+
+//         const status_sesudah = disetujui ? 'Tersedia' : 'Tidak Aktif'; 
+
+//         await client.query("UPDATE barang SET status = $1 WHERE id = $2", [status_sesudah, id]);
+        
+//         const logQuery = `
+//             INSERT INTO log_validasi (barang_id, user_validator_id, status_sebelum, status_sesudah, catatan)
+//             VALUES ($1, $2, $3, $4, $5);
+//         `;
+//         await client.query(logQuery, [id, user_validator_id, status_sebelum, status_sesudah, catatan]);
+
+//         await client.query('COMMIT');
+//         res.json({ message: `Barang telah berhasil di-${disetujui ? 'validasi' : 'tolak'}.` });
+
+//     } catch (error) {
+//         await client.query('ROLLBACK');
+//         console.error('Error saat validasi barang:', error);
+//         res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+//     } finally {
+//         client.release();
+//     }
+// };
+
 const regenerateQrCode = async (req, res) => {
     const { id } = req.params;
     try {

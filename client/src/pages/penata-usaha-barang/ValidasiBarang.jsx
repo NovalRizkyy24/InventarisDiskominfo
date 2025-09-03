@@ -108,8 +108,10 @@ export function ValidasiBarang() {
           <CardFooter className="p-6">
             <Textarea label="Catatan (Opsional, diisi jika menolak)" value={catatan} onChange={(e) => setCatatan(e.target.value)} />
             <div className="flex gap-4 mt-4">
-              <Button color="green" onClick={() => openConfirmModal(true)}>Setujui</Button>
-              <Button color="red" onClick={() => openConfirmModal(false)}>Tolak</Button>
+              {/* --- PERUBAHAN DI SINI --- */}
+              <Button color="green" onClick={() => openConfirmModal(true)} disabled={!!catatan}>Setujui</Button>
+              <Button color="red" onClick={() => openConfirmModal(false)} disabled={!catatan}>Tolak</Button>
+              {/* --- AKHIR PERUBAHAN --- */}
             </div>
           </CardFooter>
         </Card>

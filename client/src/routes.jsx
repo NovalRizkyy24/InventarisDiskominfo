@@ -100,9 +100,9 @@ const routes = [
       { icon: <TableCellsIcon {...icon} />, name: "Data Barang", path: "/data-barang", element: <DataBarang /> },
       { icon: <CheckBadgeIcon {...icon} />, name: "Validasi Transaksi",
         subRoutes: [
-          { icon: <DocumentPlusIcon {...icon} />, name: "Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
-          { icon: <ClipboardDocumentListIcon {...icon} />, name: "Peminjaman", path: "/data-peminjaman", element: <DataPeminjaman /> },
-          { icon: <TrashIcon {...icon} />, name: "Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
+          { icon: <DocumentPlusIcon {...icon} />, name: "Pengadaan Barang", path: "/data-pengadaan", element: <DataPengadaan /> },
+          { icon: <ClipboardDocumentListIcon {...icon} />, name: "Peminjaman Barang", path: "/data-peminjaman", element: <DataPeminjaman /> },
+          { icon: <TrashIcon {...icon} />, name: "Penghapusan Barang", path: "/data-penghapusan", element: <DataPenghapusan /> },
         ]
       },
       // Rute tanpa navigasi
@@ -128,9 +128,9 @@ const routes = [
         name: "Validasi Transaksi",
         subRoutes: [
           { icon: <TableCellsIcon {...icon} />, name: "Pendataan Barang", path: "/data-barang", element: <DataBarang /> },
-          { icon: <ClipboardDocumentListIcon {...icon} />, name: "Peminjaman", path: "/data-peminjaman", element: <DataPeminjaman /> },
-          { icon: <DocumentPlusIcon {...icon} />, name: "Pengadaan", path: "/data-pengadaan", element: <DataPengadaan /> },
-          { icon: <TrashIcon {...icon} />, name: "Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
+          { icon: <ClipboardDocumentListIcon {...icon} />, name: "Peminjaman Barang", path: "/data-peminjaman", element: <DataPeminjaman /> },
+          { icon: <DocumentPlusIcon {...icon} />, name: "Pengadaan Barang", path: "/data-pengadaan", element: <DataPengadaan /> },
+          { icon: <TrashIcon {...icon} />, name: "Penghapusan Barang", path: "/data-penghapusan", element: <DataPenghapusan /> },
         ]
       },
       // Rute tanpa navigasi

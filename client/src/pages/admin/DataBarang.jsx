@@ -31,7 +31,7 @@ const getStatusColor = (status) => {
     case 'Tersedia': return 'green';
     case 'Dipinjam': return 'blue';
     case 'Dalam Perbaikan': return 'amber';
-    case 'Rusak Berat': return 'red';
+    // case 'Rusak Berat': return 'red';
     case 'Tidak Aktif': return 'blue-gray';
     case 'Ditolak': return 'red';
     default: return 'gray';

@@ -40,7 +40,7 @@ const getLokasiById = async (req, res) => {
  * @access  Private
  */
 const createLokasi = async (req, res) => {
-    const { nama_lokasi, provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi } = req.body;
+    const { nama_lokasi, provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi, latitude, longitude } = req.body;
     
     if (!nama_lokasi || typeof nama_lokasi !== 'string' || nama_lokasi.trim() === '') {
         return res.status(400).json({ message: 'Nama lokasi harus diisi dan tidak boleh kosong.' });
@@ -48,8 +48,8 @@ const createLokasi = async (req, res) => {
 
     try {
         const { rows } = await pool.query(
-            'INSERT INTO lokasi (nama_lokasi, provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [nama_lokasi.trim(), provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi]
+            'INSERT INTO lokasi (nama_lokasi, provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi, latitude, longitude) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [nama_lokasi.trim(), provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi, latitude, longitude]
         );
         res.status(201).json({ message: 'Lokasi berhasil dibuat', lokasi: rows[0] });
     } catch (error) {
@@ -65,7 +65,7 @@ const createLokasi = async (req, res) => {
  */
 const updateLokasi = async (req, res) => {
     const { id } = req.params;
-    const { nama_lokasi, provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi } = req.body;
+    const { nama_lokasi, provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi, latitude, longitude } = req.body;
     
     if (!nama_lokasi || typeof nama_lokasi !== 'string' || nama_lokasi.trim() === '') {
         return res.status(400).json({ message: 'Nama lokasi tidak boleh kosong.' });
@@ -73,8 +73,8 @@ const updateLokasi = async (req, res) => {
     
     try {
         const { rows, rowCount } = await pool.query(
-            'UPDATE lokasi SET nama_lokasi = $1, provinsi = $2, kab_kota = $3, kecamatan = $4, kelurahan_desa = $5, deskripsi = $6 WHERE id = $7 RETURNING *',
-            [nama_lokasi.trim(), provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi, id]
+            'UPDATE lokasi SET nama_lokasi = $1, provinsi = $2, kab_kota = $3, kecamatan = $4, kelurahan_desa = $5, deskripsi = $6, latitude = $7, longitude = $8 WHERE id = $9 RETURNING *',
+            [nama_lokasi.trim(), provinsi, kab_kota, kecamatan, kelurahan_desa, deskripsi, latitude, longitude, id]
         );
         if (rowCount === 0) {
             return res.status(404).json({ message: 'Lokasi tidak ditemukan' });

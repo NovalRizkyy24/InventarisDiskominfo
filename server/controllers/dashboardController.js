@@ -9,17 +9,17 @@ const getAdminDashboardSummary = async (req, res) => {
     try {
         const totalUsersResult = await pool.query('SELECT COUNT(*) FROM users');
         const totalUsers = parseInt(totalUsersResult.rows[0].count, 10);
-        const totalBarangResult = await pool.query("SELECT COUNT(*) FROM barang WHERE status <> 'Tidak Aktif'");
+        const totalBarangResult = await pool.query("SELECT COUNT(*) FROM barang WHERE status NOT IN ('Tidak Aktif', 'Ditolak')");
         const totalBarang = parseInt(totalBarangResult.rows[0].count, 10);
         const barangDipinjamResult = await pool.query("SELECT COUNT(*) FROM barang WHERE status = 'Dipinjam'");
         const barangDipinjam = parseInt(barangDipinjamResult.rows[0].count, 10);
-        const totalAsetResult = await pool.query("SELECT SUM(nilai_perolehan) FROM barang WHERE status <> 'Tidak Aktif'");
+        const totalAsetResult = await pool.query("SELECT SUM(nilai_perolehan) FROM barang WHERE status NOT IN ('Tidak Aktif', 'Ditolak')");
         const totalAsetValue = parseFloat(totalAsetResult.rows[0].sum) || 0;
         const kategoriResult = await pool.query(`
             SELECT k.nama_kategori, COUNT(b.id) as jumlah
             FROM barang b
             JOIN kategori_barang k ON b.kategori_id = k.id
-            WHERE b.status <> 'Tidak Aktif'
+            WHERE b.status NOT IN ('Tidak Aktif', 'Ditolak')
             GROUP BY k.nama_kategori
             ORDER BY jumlah DESC;
         `);
@@ -27,7 +27,7 @@ const getAdminDashboardSummary = async (req, res) => {
         const statusResult = await pool.query(`
             SELECT status, COUNT(id) as jumlah
             FROM barang
-            WHERE status <> 'Tidak Aktif'
+            WHERE status NOT IN ('Tidak Aktif', 'Ditolak')
             GROUP BY status
             ORDER BY status;
         `);
@@ -82,9 +82,9 @@ const getPengurusBarangDashboardSummary = async (req, res) => {
         const tugasResult = await pool.query(tugasQuery);
         const daftarTugas = tugasResult.rows;
         
-        const totalBarangResult = await pool.query("SELECT COUNT(*) FROM barang WHERE status <> 'Tidak Aktif'");
+        const totalBarangResult = await pool.query("SELECT COUNT(*) FROM barang WHERE status NOT IN ('Tidak Aktif', 'Ditolak')");
         const totalBarang = parseInt(totalBarangResult.rows[0].count, 10);
-        const totalAsetResult = await pool.query("SELECT SUM(nilai_perolehan) FROM barang WHERE status <> 'Tidak Aktif'");
+        const totalAsetResult = await pool.query("SELECT SUM(nilai_perolehan) FROM barang WHERE status NOT IN ('Tidak Aktif', 'Ditolak')");
         const totalAsetValue = parseFloat(totalAsetResult.rows[0].sum) || 0;
 
         res.json({
@@ -127,9 +127,9 @@ const getPenataUsahaDashboardSummary = async (req, res) => {
         const tugasResult = await pool.query(tugasQuery);
         const daftarTugas = tugasResult.rows;
 
-        const totalBarangResult = await pool.query("SELECT COUNT(*) FROM barang WHERE status <> 'Tidak Aktif'");
+        const totalBarangResult = await pool.query("SELECT COUNT(*) FROM barang WHERE status NOT IN ('Tidak Aktif', 'Ditolak')");
         const totalBarang = parseInt(totalBarangResult.rows[0].count, 10);
-        const totalAsetResult = await pool.query("SELECT SUM(nilai_perolehan) FROM barang WHERE status <> 'Tidak Aktif'");
+        const totalAsetResult = await pool.query("SELECT SUM(nilai_perolehan) FROM barang WHERE status NOT IN ('Tidak Aktif', 'Ditolak')");
         const totalAsetValue = parseFloat(totalAsetResult.rows[0].sum) || 0;
 
         res.json({
@@ -177,7 +177,7 @@ const getPpkDashboardSummary = async (req, res) => {
         
         const totalBarangResult = await pool.query("SELECT COUNT(*) FROM barang WHERE status = 'Tersedia'");
         const totalBarang = parseInt(totalBarangResult.rows[0].count, 10);
-        const totalAsetResult = await pool.query("SELECT SUM(nilai_perolehan) FROM barang WHERE status <> 'Tidak Aktif'");
+        const totalAsetResult = await pool.query("SELECT SUM(nilai_perolehan) FROM barang WHERE status NOT IN ('Tidak Aktif', 'Ditolak')");
         const totalAsetValue = parseFloat(totalAsetResult.rows[0].sum) || 0;
 
         res.json({
@@ -202,7 +202,7 @@ const getPpkDashboardSummary = async (req, res) => {
  */
 const getKepalaDinasDashboardSummary = async (req, res) => {
     try {
-        const totalAsetResult = await pool.query("SELECT SUM(nilai_perolehan) FROM barang WHERE status <> 'Tidak Aktif'");
+        const totalAsetResult = await pool.query("SELECT SUM(nilai_perolehan) FROM barang WHERE status NOT IN ('Tidak Aktif', 'Ditolak')");
         const totalAsetValue = parseFloat(totalAsetResult.rows[0].sum) || 0;
         const barangBaruResult = await pool.query("SELECT COUNT(*) FROM barang WHERE tanggal_perolehan >= date_trunc('month', CURRENT_DATE)");
         const barangBaruBulanIni = parseInt(barangBaruResult.rows[0].count, 10);
@@ -219,13 +219,13 @@ const getKepalaDinasDashboardSummary = async (req, res) => {
         `;
         const persetujuanResult = await pool.query(persetujuanQuery);
         const daftarPersetujuan = persetujuanResult.rows;
-        const totalBarangResult = await pool.query("SELECT COUNT(*) FROM barang WHERE status <> 'Tidak Aktif'");
+        const totalBarangResult = await pool.query("SELECT COUNT(*) FROM barang WHERE status NOT IN ('Tidak Aktif', 'Ditolak')");
         const totalBarang = parseInt(totalBarangResult.rows[0].count, 10);
         const kategoriResult = await pool.query(`
             SELECT k.nama_kategori, COUNT(b.id) as jumlah
             FROM barang b
             JOIN kategori_barang k ON b.kategori_id = k.id
-            WHERE b.status <> 'Tidak Aktif'
+            WHERE b.status NOT IN ('Tidak Aktif', 'Ditolak')
             GROUP BY k.nama_kategori
             ORDER BY jumlah DESC;
         `);
@@ -233,7 +233,7 @@ const getKepalaDinasDashboardSummary = async (req, res) => {
         const statusResult = await pool.query(`
             SELECT status, COUNT(id) as jumlah
             FROM barang
-            WHERE status <> 'Tidak Aktif'
+            WHERE status NOT IN ('Tidak Aktif', 'Ditolak')
             GROUP BY status
             ORDER BY status;
         `);

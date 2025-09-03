@@ -10,6 +10,7 @@ import {
   Button,
   Select,
   Option,
+  Textarea,
 } from "@material-tailwind/react";
 import toast from 'react-hot-toast';
 import { useAuth } from "@/hooks/useAuth";
@@ -40,6 +41,7 @@ export function TambahBarang() {
     kategori_id: "",
     merk: "",
     tipe: "",
+    spesifikasi: "", // State untuk spesifikasi ditambahkan
     sumber_dana: "",
     tanggal_perolehan: "",
     nilai_perolehan: "",
@@ -177,6 +179,8 @@ export function TambahBarang() {
               <Input type="date" label="Tanggal Perolehan*" name="tanggal_perolehan" onChange={handleChange} required />
               <Input type="text" label="Nilai Perolehan (Rp)*" name="nilai_perolehan" value={formatRupiah(formData.nilai_perolehan)} onChange={handleChange} required />
             </div>
+            {/* Field Spesifikasi ditambahkan di sini */}
+            <Textarea label="Spesifikasi" name="spesifikasi" onChange={handleChange} />
           </CardBody>
           <CardFooter className="pt-0 p-6 flex justify-end gap-2">
             <Button variant="text" color="blue-gray" onClick={() => navigate(`/${layout}/data-barang`)} disabled={loading}>

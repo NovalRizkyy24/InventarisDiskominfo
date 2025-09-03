@@ -10,6 +10,7 @@ import {
   Button,
   Select,
   Option,
+  Textarea,
 } from "@material-tailwind/react";
 import toast from 'react-hot-toast';
 
@@ -44,6 +45,7 @@ export function EditBarang() {
     kategori_id: "",
     merk: "",
     tipe: "",
+    spesifikasi: "", // State untuk spesifikasi ditambahkan
     sumber_dana: "",
     tanggal_perolehan: "",
     nilai_perolehan: "",
@@ -170,7 +172,6 @@ export function EditBarang() {
                 ))}
               </Select>
               
-              {/* --- KODE BARANG DIPISAH --- */}
               <div>
                 <label htmlFor="kode_barang_input" className="text-blue-gray-600 text-sm font-medium">Kode Barang*</label>
                 <div className="flex items-center w-full border border-blue-gray-200 rounded-lg mt-1">
@@ -202,6 +203,8 @@ export function EditBarang() {
                 <Option value="Tidak Aktif">Tidak Aktif</Option>
               </Select>
             </div>
+            {/* Field Spesifikasi ditambahkan di sini */}
+            <Textarea label="Spesifikasi" name="spesifikasi" value={formData.spesifikasi || ''} onChange={handleChange} />
           </CardBody>
           <CardFooter className="pt-0 p-6 flex justify-end gap-2">
              <Button variant="text" color="blue-gray" onClick={() => navigate("/admin/data-barang")} disabled={loading}>Batal</Button>

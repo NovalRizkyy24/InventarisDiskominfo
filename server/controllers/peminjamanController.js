@@ -39,9 +39,10 @@ const longDateFormatter = (date) => {
 
 
 const createPeminjaman = async (req, res) => {
-    const { barang_ids, tanggal_mulai_pinjam, tanggal_rencana_kembali, keperluan, jenis } = req.body;
+    const { tanggal_mulai_pinjam, tanggal_rencana_kembali, keperluan, jenis } = req.body;
+    const barang_ids = JSON.parse(req.body.barang_ids); 
     const user_pengusul_id = req.user.id;
-
+    
     let suratUrl = null;
     if (req.file) {
         suratUrl = req.file.path.replace(/\\/g, "/");

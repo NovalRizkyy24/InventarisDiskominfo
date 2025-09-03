@@ -168,6 +168,10 @@ const getUsersByRole = async (req, res) => {
   }
 };
 
+const logoutUser = (req, res) => {
+  res.status(200).json({ message: "Logout berhasil." });
+};
+
 module.exports = {
   loginUser,
   getAllUsers,
@@ -176,4 +180,5 @@ module.exports = {
   updateUser,
   createUser, 
   getUsersByRole,
+  logoutUser,
 };

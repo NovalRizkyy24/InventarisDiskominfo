@@ -101,23 +101,36 @@ export function TambahPeminjaman() {
     const token = localStorage.getItem("authToken");
     const toastId = toast.loading('Mengajukan peminjaman...');
 
-    const payload = {
-        barang_ids: selectedBarangIds,
-        tanggal_mulai_pinjam: formData.tanggal_mulai_pinjam,
-        tanggal_rencana_kembali: formData.tanggal_rencana_kembali,
-        keperluan: formData.keperluan,
-        jenis: formData.jenis,
-    };
-
+    // --- PERUBAHAN UTAMA DI SINI ---
+    // 1. Buat objek FormData
+    const dataToSend = new FormData();
+    
+    // 2. Tambahkan semua data ke FormData
+    // Mengubah array menjadi string JSON agar bisa dikirim
+    dataToSend.append('barang_ids', JSON.stringify(selectedBarangIds)); 
+    dataToSend.append('tanggal_mulai_pinjam', formData.tanggal_mulai_pinjam);
+    dataToSend.append('tanggal_rencana_kembali', formData.tanggal_rencana_kembali);
+    dataToSend.append('keperluan', formData.keperluan);
+    dataToSend.append('jenis', formData.jenis);
+    
+    // Tambahkan file jika ada
+    if (formData.surat_peminjaman) {
+      dataToSend.append('surat_peminjaman', formData.surat_peminjaman);
+    }
+    
     try {
       const response = await fetch('/api/peminjaman', {
         method: 'POST',
         headers: { 
-            'Content-Type': 'application/json',
+            // 3. Hapus 'Content-Type'. Browser akan mengaturnya secara otomatis
+            // 'Content-Type': 'application/json',
             Authorization: `Bearer ${token}` 
         },
-        body: JSON.stringify(payload),
+        // 4. Kirim FormData sebagai body
+        body: dataToSend,
       });
+      // --- AKHIR PERUBAHAN ---
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
       
@@ -158,6 +171,7 @@ export function TambahPeminjaman() {
                   </Typography>
                 </div>
 
+                {/* Input file akan tetap sama */}
                 {user?.role === 'Pengurus Barang' && (
                   <Input 
                     type="file" 

@@ -46,10 +46,25 @@ const BeritaAcaraForm = ({ peminjamanId, dataPeminjaman, onSaveSuccess }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setPihakKedua(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'nip_pihak_kedua') {
+        const numericValue = value.replace(/[^0-9]/g, '');
+        if (numericValue.length <= 18) {
+            setPihakKedua(prev => ({ ...prev, [name]: numericValue }));
+        }
+    } else {
+        setPihakKedua(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSave = async () => {
+    // --- PERUBAHAN DI SINI: Validasi NIP ---
+    if (pihakKedua.nip_pihak_kedua.length !== 18) {
+        toast.error("NIP Pihak Kedua harus terdiri dari 18 angka.");
+        return; // Hentikan proses jika NIP tidak valid
+    }
+    // --- AKHIR PERUBAHAN ---
+
     setLoadingSave(true);
     const toastId = toast.loading("Menyimpan data Pihak Kedua...");
     const token = localStorage.getItem("authToken");
@@ -124,7 +139,16 @@ const BeritaAcaraForm = ({ peminjamanId, dataPeminjaman, onSaveSuccess }) => {
           Data Pihak Kedua (Peminjam Eksternal):
         </Typography>
         <Input label="Nama Lengkap Pihak Kedua*" name="nama_pihak_kedua" value={pihakKedua.nama_pihak_kedua} onChange={handleChange} required disabled={loadingSave} />
-        <Input label="NIP Pihak Kedua*" name="nip_pihak_kedua" value={pihakKedua.nip_pihak_kedua} onChange={handleChange} required disabled={loadingSave} />
+        <Input 
+            label="NIP Pihak Kedua (18 Angka)*" 
+            name="nip_pihak_kedua" 
+            value={pihakKedua.nip_pihak_kedua} 
+            onChange={handleChange} 
+            required 
+            disabled={loadingSave} 
+            maxLength={18}
+            type="text"
+        />
         <Input label="Jabatan Pihak Kedua*" name="jabatan_pihak_kedua" value={pihakKedua.jabatan_pihak_kedua} onChange={handleChange} required disabled={loadingSave} />
       </CardBody>
       <CardFooter className="flex justify-end gap-2">
