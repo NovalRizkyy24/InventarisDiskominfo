@@ -4,8 +4,18 @@ const pool = require('../config/db');
 // @route   GET /api/kategori
 // @access  Private
 const getAllKategori = async (req, res) => {
+  const { search } = req.query;
   try {
-    const { rows } = await pool.query('SELECT * FROM kategori_barang ORDER BY id ASC');
+    let queryText = 'SELECT * FROM kategori_barang';
+    const queryParams = [];
+
+    if (search) {
+      queryParams.push(`%${search}%`);
+      queryText += ` WHERE nama_kategori ILIKE $1 OR kode_kategori ILIKE $1`;
+    }
+
+    queryText += ' ORDER BY id ASC';
+    const { rows } = await pool.query(queryText, queryParams);
     res.json(rows);
   } catch (error) {
     console.error('Error saat mengambil data kategori:', error);

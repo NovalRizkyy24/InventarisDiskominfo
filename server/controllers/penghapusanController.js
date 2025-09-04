@@ -64,15 +64,39 @@ const createPenghapusan = async (req, res) => {
  * @access  Private
  */
 const getAllPenghapusan = async (req, res) => {
+    const { status, search, startDate, endDate } = req.query;
     try {
-        const query = `
+        let queryText = `
             SELECT pn.*, b.nama_barang, b.kode_barang, u.nama as nama_pengusul
             FROM penghapusan pn
             JOIN barang b ON pn.barang_id = b.id
             JOIN users u ON pn.user_pengusul_id = u.id
-            ORDER BY pn.tanggal_pengajuan DESC;
         `;
-        const { rows } = await pool.query(query);
+        const queryParams = [];
+        let whereClauses = [];
+
+        if (status && status !== 'Semua') {
+            queryParams.push(status);
+            whereClauses.push(`pn.status = $${queryParams.length}`);
+        }
+
+        if (search) {
+            queryParams.push(`%${search}%`);
+            whereClauses.push(`(pn.nomor_usulan ILIKE $${queryParams.length} OR b.nama_barang ILIKE $${queryParams.length} OR u.nama ILIKE $${queryParams.length})`);
+        }
+
+        if (startDate && endDate) {
+            queryParams.push(startDate, endDate);
+            whereClauses.push(`pn.tanggal_pengajuan BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`);
+        }
+        
+        if (whereClauses.length > 0) {
+            queryText += ` WHERE ${whereClauses.join(' AND ')}`;
+        }
+
+        queryText += ' ORDER BY pn.tanggal_pengajuan DESC';
+
+        const { rows } = await pool.query(queryText, queryParams);
         res.json(rows);
     } catch (error) {
         console.error('Error mengambil data penghapusan:', error);

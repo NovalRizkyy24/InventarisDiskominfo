@@ -100,8 +100,9 @@ const createPeminjaman = async (req, res) => {
 };
 
 const getAllPeminjaman = async (req, res) => {
+    const { status, jenis, search, startDate, endDate } = req.query;
     try {
-        const query = `
+        let queryText = `
             SELECT p.*, u.nama as nama_peminjam,
                    (SELECT STRING_AGG(b.nama_barang, ', ') 
                     FROM peminjaman_detail pd 
@@ -109,9 +110,34 @@ const getAllPeminjaman = async (req, res) => {
                     WHERE pd.peminjaman_id = p.id) as nama_barang
             FROM peminjaman p
             JOIN users u ON p.user_peminjam_id = u.id
-            ORDER BY p.tanggal_pengajuan DESC;
         `;
-        const { rows } = await pool.query(query);
+        const queryParams = [];
+        let whereClauses = [];
+
+        if (status && status !== 'Semua') {
+            queryParams.push(status);
+            whereClauses.push(`p.status = $${queryParams.length}`);
+        }
+        if (jenis && jenis !== 'Semua') {
+            queryParams.push(jenis);
+            whereClauses.push(`p.jenis = $${queryParams.length}`);
+        }
+        if (search) {
+            queryParams.push(`%${search}%`);
+            whereClauses.push(`(p.nomor_usulan ILIKE $${queryParams.length} OR u.nama ILIKE $${queryParams.length})`);
+        }
+        if (startDate && endDate) {
+            queryParams.push(startDate, endDate);
+            whereClauses.push(`p.tanggal_pengajuan BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`);
+        }
+
+        if (whereClauses.length > 0) {
+            queryText += ` WHERE ${whereClauses.join(' AND ')}`;
+        }
+
+        queryText += ' ORDER BY p.tanggal_pengajuan DESC';
+
+        const { rows } = await pool.query(queryText, queryParams);
         res.json(rows);
     } catch (error) {
         console.error('Error mengambil data peminjaman:', error);

@@ -62,21 +62,55 @@ const createPengadaan = async (req, res) => {
 // @route   GET /api/pengadaan
 // @access  Private
 const getAllPengadaan = async (req, res) => {
+    const { status, search, startDate, endDate } = req.query;
+
     try {
-        const query = `
+        let queryText = `
             SELECT rp.*, u.nama as nama_pengusul, p.nama as nama_ppk 
             FROM rencana_pengadaan rp
             JOIN users u ON rp.user_pengusul_id = u.id
             LEFT JOIN users p ON rp.ppk_id = p.id
-            ORDER BY rp.tanggal_usulan DESC;
         `;
-        const { rows } = await pool.query(query);
+        const queryParams = [];
+        let whereClauses = [];
+
+        if (status && status !== 'Semua') {
+            queryParams.push(status);
+            whereClauses.push(`rp.status = $${queryParams.length}`);
+        }
+
+        if (search) {
+            queryParams.push(`%${search}%`);
+            whereClauses.push(`(rp.nomor_usulan ILIKE $${queryParams.length} OR rp.program ILIKE $${queryParams.length} OR u.nama ILIKE $${queryParams.length})`);
+        }
+
+        if (startDate && endDate) {
+            queryParams.push(startDate, endDate);
+            whereClauses.push(`rp.tanggal_usulan BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`);
+        }
+
+        if (whereClauses.length > 0) {
+            queryText += ` WHERE ${whereClauses.join(' AND ')}`;
+        }
+
+        queryText += `
+            ORDER BY 
+                rp.tanggal_usulan DESC,
+                CASE
+                    WHEN rp.status = 'Diajukan' THEN 1
+                    WHEN rp.status = 'Ditolak' THEN 3
+                    ELSE 2
+                END;
+        `;
+
+        const { rows } = await pool.query(queryText, queryParams);
         res.json(rows);
     } catch (error) {
         console.error('Error mengambil data pengadaan:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
 
 // @desc    Get pengadaan request by ID with details
 // @route   GET /api/pengadaan/:id
@@ -399,24 +433,29 @@ const deletePengadaan = async (req, res) => {
 
 const validatePengadaanItems = async (req, res) => {
     const { id: pengadaanId } = req.params;
-    const { validatedItems } = req.body;
+    const { validatedItems, notes } = req.body;
     const user_validator_id = req.user.id;
     const client = await pool.connect();
 
     try {
         await client.query('BEGIN');
 
+        let isAnyItemApproved = false;
         for (const detailId in validatedItems) {
             const isApproved = validatedItems[detailId];
+            if (isApproved) {
+                isAnyItemApproved = true;
+            }
+            const note = notes[detailId] || null;
             await client.query(
-                'UPDATE rencana_pengadaan_detail SET disetujui = $1 WHERE id = $2 AND rencana_id = $3',
-                [isApproved, detailId, pengadaanId]
+                'UPDATE rencana_pengadaan_detail SET disetujui = $1, catatan_penolakan = $2 WHERE id = $3 AND rencana_id = $4',
+                [isApproved, note, detailId, pengadaanId]
             );
         }
 
         const currentData = await client.query('SELECT status FROM rencana_pengadaan WHERE id = $1', [pengadaanId]);
         const status_sebelum = currentData.rows[0].status;
-        const status_sesudah = 'Menunggu Persetujuan';
+        const status_sesudah = isAnyItemApproved ? 'Menunggu Persetujuan' : 'Ditolak';
 
         await client.query(
             "UPDATE rencana_pengadaan SET status = $1 WHERE id = $2",
@@ -427,7 +466,8 @@ const validatePengadaanItems = async (req, res) => {
             INSERT INTO log_validasi (rencana_pengadaan_id, user_validator_id, status_sebelum, status_sesudah, catatan)
             VALUES ($1, $2, $3::status_transaksi, $4::status_transaksi, $5);
         `;
-        await client.query(logQuery, [pengadaanId, user_validator_id, status_sebelum, status_sesudah, "Validasi item oleh Penatausahaan Barang."]);
+        const catatanLog = isAnyItemApproved ? "Validasi item oleh Penatausahaan Barang." : "Semua barang ditolak oleh Penatausahaan Barang.";
+        await client.query(logQuery, [pengadaanId, user_validator_id, status_sebelum, status_sesudah, catatanLog]);
 
         await client.query('COMMIT');
         res.json({ message: 'Validasi barang berhasil disimpan.' });

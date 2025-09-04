@@ -6,6 +6,7 @@ const qrcode = require('qrcode');
 // @access  Private
 const getAllBarang = async (req, res) => {
   const userRole = req.user.role; 
+  const { status, kategori_id, search, startDate, endDate } = req.query;
 
   try {
     let queryText = `
@@ -24,15 +25,43 @@ const getAllBarang = async (req, res) => {
       LEFT JOIN lokasi l ON b.lokasi_id = l.id 
       LEFT JOIN users u ON b.pemegang_barang_id = u.id
     `;
+    
+    const queryParams = [];
+    let whereClauses = [];
 
     const allowedRoles = ['Admin', 'Pengurus Barang', 'Penata Usaha Barang', 'Kepala Dinas'];
     if (!allowedRoles.includes(userRole)) {
-      queryText += " WHERE b.status <> 'Tidak Aktif'";
+      whereClauses.push("b.status <> 'Tidak Aktif'");
+    }
+
+    if (status && status !== 'Semua') {
+        queryParams.push(status);
+        whereClauses.push(`b.status = $${queryParams.length}`);
+    }
+
+    if (kategori_id) {
+        queryParams.push(kategori_id);
+        whereClauses.push(`b.kategori_id = $${queryParams.length}`);
+    }
+
+    if (search) {
+        queryParams.push(`%${search}%`);
+        const searchClause = `(b.nama_barang ILIKE $${queryParams.length} OR b.kode_barang ILIKE $${queryParams.length} OR b.merk ILIKE $${queryParams.length} OR b.tipe ILIKE $${queryParams.length})`;
+        whereClauses.push(searchClause);
+    }
+
+    if (startDate && endDate) {
+        queryParams.push(startDate, endDate);
+        whereClauses.push(`b.tanggal_perolehan BETWEEN $${queryParams.length - 1} AND $${queryParams.length}`);
+    }
+
+    if (whereClauses.length > 0) {
+        queryText += ` WHERE ${whereClauses.join(' AND ')}`;
     }
     
-    queryText += ' ORDER BY b.id ASC';
+    queryText += ' ORDER BY b.id DESC';
 
-    const { rows } = await pool.query(queryText);
+    const { rows } = await pool.query(queryText, queryParams);
     res.json(rows);
   } catch (error) {
     console.error('Error saat mengambil data barang:', error);

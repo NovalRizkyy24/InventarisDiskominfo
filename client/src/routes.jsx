@@ -105,6 +105,7 @@ const routes = [
           { icon: <TrashIcon {...icon} />, name: "Penghapusan Barang", path: "/data-penghapusan", element: <DataPenghapusan /> },
         ]
       },
+      { icon: <DocumentChartBarIcon {...icon} />, name: "Laporan", path: "/laporan", element: <Laporan /> }, // Ditambahkan
       // Rute tanpa navigasi
       { path: "/tambah-pengadaan", element: <TambahPengadaan /> },
       { path: "/tambah-barang", element: <TambahBarang /> },
@@ -133,6 +134,7 @@ const routes = [
           { icon: <TrashIcon {...icon} />, name: "Penghapusan Barang", path: "/data-penghapusan", element: <DataPenghapusan /> },
         ]
       },
+      { icon: <DocumentChartBarIcon {...icon} />, name: "Laporan", path: "/laporan", element: <Laporan /> }, // Ditambahkan
       // Rute tanpa navigasi
       { path: "/detail-pengadaan/:id", element: <DetailPengadaan /> },
       { path: "/detail-penghapusan/:id", element: <DetailPenghapusan /> },
@@ -201,6 +203,7 @@ const routes = [
             { icon: <TrashIcon {...icon} />, name: "Penghapusan", path: "/data-penghapusan", element: <DataPenghapusan /> },
         ]
       },
+      { icon: <DocumentChartBarIcon {...icon} />, name: "Laporan", path: "/laporan", element: <Laporan /> }, // Ditambahkan
       // Rute tanpa navigasi
       { path: "/detail-pengadaan/:id", element: <DetailPengadaan /> },
       { path: "/detail-penghapusan/:id", element: <DetailPenghapusan /> },

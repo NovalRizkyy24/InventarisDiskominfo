@@ -35,9 +35,10 @@ const getStatusColor = (status) => {
   }
 };
 
-const ValidationRow = ({ item, isPenatausahaan, checkedItems, handleCheckboxChange }) => {
+const ValidationRow = ({ item, isPenatausahaan, checkedItems, handleCheckboxChange, handleNoteChange, notes, isAfterValidation }) => {
     const total = item.jumlah * item.harga_satuan;
     const isChecked = checkedItems[item.id];
+    const note = notes[item.id] || "";
 
     let approvalStatus;
     if (item.disetujui === true) {
@@ -50,7 +51,7 @@ const ValidationRow = ({ item, isPenatausahaan, checkedItems, handleCheckboxChan
         <tr key={item.id}>
             {isPenatausahaan && (
                 <td className="py-3 px-5 border-b">
-                    <Checkbox checked={!!isChecked} onChange={() => handleCheckboxChange(item.id)} />
+                    <Checkbox checked={!!isChecked} onChange={() => handleCheckboxChange(item.id)} disabled={!!note} />
                 </td>
             )}
             <td className="py-3 px-5 border-b"><Typography className="text-xs font-semibold">{item.nama_barang_usulan}</Typography></td>
@@ -59,8 +60,18 @@ const ValidationRow = ({ item, isPenatausahaan, checkedItems, handleCheckboxChan
             <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">Rp {Number(item.harga_satuan).toLocaleString('id-ID')}</Typography></td>
             <td className="py-3 px-5 border-b min-w-[120px]"><Typography className="text-xs font-semibold">Rp {total.toLocaleString('id-ID')}</Typography></td>
             <td className="py-3 px-5 border-b"><Typography className="text-xs font-normal">{item.spesifikasi_usulan}</Typography></td>
+            {isPenatausahaan && (
+                <td className="py-3 px-5 border-b">
+                    <Textarea label="Catatan Penolakan" value={note} onChange={(e) => handleNoteChange(item.id, e.target.value)} />
+                </td>
+            )}
             {approvalStatus && (
                  <td className="py-3 px-5 border-b">{approvalStatus}</td>
+            )}
+            {isAfterValidation && item.disetujui === false && (
+                <td className="py-3 px-5 border-b">
+                    <Typography className="text-xs font-normal text-red-500">{item.catatan_penolakan || '-'}</Typography>
+                </td>
             )}
         </tr>
     );
@@ -112,6 +123,7 @@ export function DetailPengadaan() {
     const [loading, setLoading] = useState(true);
     const [catatan, setCatatan] = useState("");
     const [checkedItems, setCheckedItems] = useState({});
+    const [notes, setNotes] = useState({});
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [confirmState, setConfirmState] = useState({ isOpen: false, action: null, title: "", message: "", actionText: "Ya", actionColor: "green" });
 
@@ -126,10 +138,13 @@ export function DetailPengadaan() {
 
             if (usulanData.details) {
                 const initialChecks = {};
+                const initialNotes = {};
                 usulanData.details.forEach(item => {
                     initialChecks[item.id] = item.disetujui === null ? false : item.disetujui;
+                    initialNotes[item.id] = item.catatan_penolakan || "";
                 });
                 setCheckedItems(initialChecks);
+                setNotes(initialNotes);
             }
 
             const logResponse = await fetch(`/api/pengadaan/${id}/logs`, { headers: { Authorization: `Bearer ${token}` } });
@@ -170,11 +185,17 @@ export function DetailPengadaan() {
     const handleSaveValidation = async () => {
         const token = localStorage.getItem("authToken");
         const toastId = toast.loading('Menyimpan hasil validasi...');
+        
+        const validatedItems = {};
+        for (const itemId in checkedItems) {
+            validatedItems[itemId] = !!notes[itemId] ? false : checkedItems[itemId];
+        }
+
         try {
             const response = await fetch(`/api/pengadaan/${id}/validate-items`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ validatedItems: checkedItems }),
+                body: JSON.stringify({ validatedItems, notes }),
             });
             if (!response.ok) throw new Error("Gagal menyimpan validasi.");
             toast.success("Validasi berhasil disimpan!", { id: toastId });
@@ -207,6 +228,13 @@ export function DetailPengadaan() {
         setCheckedItems(prev => ({
             ...prev,
             [detailId]: !prev[detailId]
+        }));
+    };
+
+    const handleNoteChange = (detailId, value) => {
+        setNotes(prev => ({
+            ...prev,
+            [detailId]: value,
         }));
     };
 
@@ -255,8 +283,16 @@ export function DetailPengadaan() {
     const isAfterValidation = ['Menunggu Persetujuan', 'Disetujui Kepala Dinas', 'Selesai', 'Ditolak'].includes(usulan?.status);
 
     let tableHeaders = ["Nama Barang", "Jumlah", "Satuan", "Harga Satuan", "Total", "Spesifikasi"];
-    if(isPenatausahaan) tableHeaders.unshift("Pilih");
-    if(isAfterValidation) tableHeaders.push("Status");
+    if(isPenatausahaan) {
+        tableHeaders.unshift("Pilih");
+        tableHeaders.push("Catatan");
+    }
+    if(isAfterValidation) {
+        tableHeaders.push("Status");
+        if (usulan.details.some(d => d.disetujui === false)) {
+            tableHeaders.push("Catatan Penolakan");
+        }
+    }
 
     return (
         <div className="mt-12 mb-8 flex flex-col gap-8">
@@ -290,6 +326,9 @@ export function DetailPengadaan() {
                                         isPenatausahaan={isPenatausahaan}
                                         checkedItems={checkedItems}
                                         handleCheckboxChange={handleCheckboxChange}
+                                        handleNoteChange={handleNoteChange}
+                                        notes={notes}
+                                        isAfterValidation={isAfterValidation}
                                     />
                                 ))}
                             </tbody>

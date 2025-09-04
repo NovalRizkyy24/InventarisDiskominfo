@@ -52,8 +52,29 @@ const loginUser = async (req, res) => {
 };
 
 const getAllUsers = async (req, res) => {
+  const { role, search } = req.query;
   try {
-    const allUsers = await pool.query('SELECT id, nama, username, role, jabatan, nip FROM users ORDER BY id ASC');
+    let queryText = 'SELECT id, nama, username, role, jabatan, nip FROM users';
+    const queryParams = [];
+    let whereClauses = [];
+
+    if (role && role !== 'Semua') {
+      queryParams.push(role);
+      whereClauses.push(`role = $${queryParams.length}`);
+    }
+
+    if (search) {
+      queryParams.push(`%${search}%`);
+      whereClauses.push(`(nama ILIKE $${queryParams.length} OR username ILIKE $${queryParams.length})`);
+    }
+
+    if (whereClauses.length > 0) {
+      queryText += ` WHERE ${whereClauses.join(' AND ')}`;
+    }
+
+    queryText += ' ORDER BY id ASC';
+
+    const allUsers = await pool.query(queryText, queryParams);
     res.json(allUsers.rows);
   } catch (error) {
     console.error('Error saat mengambil data pengguna:', error);

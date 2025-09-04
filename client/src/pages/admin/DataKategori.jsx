@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Card, CardHeader, CardBody, Typography, IconButton, Tooltip, Button } from "@material-tailwind/react";
-import { TrashIcon, PencilIcon, PlusIcon } from "@heroicons/react/24/solid";
+import { Card, CardHeader, CardBody, Typography, IconButton, Tooltip, Button, Input } from "@material-tailwind/react";
+import { TrashIcon, PencilIcon, PlusIcon, MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { ConfirmationModal } from "@/widgets/layout";
 
 export function DataKategori() {
   const [kategori, setKategori] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const API_URL = "/api/kategori";
 
   const fetchData = async () => {
     const token = localStorage.getItem("authToken");
     try {
-      const response = await fetch(API_URL, { headers: { Authorization: `Bearer ${token}` } });
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+
+      const response = await fetch(`${API_URL}?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) throw new Error("Gagal mengambil data kategori");
       const data = await response.json();
       setKategori(data);
@@ -25,7 +29,7 @@ export function DataKategori() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [searchQuery]);
 
   const openDeleteModal = (id) => {
     setItemToDelete(id);
@@ -59,6 +63,14 @@ export function DataKategori() {
             </Link>
           </CardHeader>
           <CardBody className="overflow-x-scroll px-0 pt-0 pb-2">
+            <div className="p-4">
+              <Input
+                label="Cari Kategori..."
+                icon={<MagnifyingGlassIcon className="h-5 w-5" />}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
             <table className="w-full min-w-[640px] table-auto">
               <thead>
                 <tr>

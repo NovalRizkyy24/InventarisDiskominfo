@@ -31,7 +31,6 @@ const getStatusColor = (status) => {
     case 'Tersedia': return 'green';
     case 'Dipinjam': return 'blue';
     case 'Dalam Perbaikan': return 'amber';
-    // case 'Rusak Berat': return 'red';
     case 'Tidak Aktif': return 'blue-gray';
     case 'Ditolak': return 'red';
     default: return 'gray';
@@ -43,8 +42,13 @@ export function DataBarang() {
   const [kategoriList, setKategoriList] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedKategori, setSelectedKategori] = useState("");
+  const [filters, setFilters] = useState({
+    search: "",
+    status: "Semua",
+    kategori_id: "",
+    startDate: "",
+    endDate: "",
+  });
   const { user } = useAuth();
 
   const API_URL = "/api/barang";
@@ -54,24 +58,25 @@ export function DataBarang() {
       if (!user) return; 
       const token = localStorage.getItem("authToken");
       try {
-        const response = await fetch(API_URL, {
+        const params = new URLSearchParams();
+        if (filters.status !== "Semua") params.append('status', filters.status);
+        if (filters.kategori_id) params.append('kategori_id', filters.kategori_id);
+        if (filters.search) params.append('search', filters.search);
+        if (filters.startDate) params.append('startDate', filters.startDate);
+        if (filters.endDate) params.append('endDate', filters.endDate);
+        
+        const response = await fetch(`${API_URL}?${params.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) throw new Error("Gagal mengambil data barang");
         let data = await response.json();
-
-        const rolesAllowedToSeeValidation = ['Admin', 'Pengurus Barang', 'Penata Usaha Barang'];
-        if (!rolesAllowedToSeeValidation.includes(user.role)) {
-          data = data.filter(item => item.status !== 'Menunggu Validasi');
-        }
-        
         setBarang(data);
       } catch (error) {
         console.error(error);
       }
     };
     fetchBarang();
-  }, [user]); 
+  }, [user, filters]); 
 
   useEffect(() => {
     const fetchKategori = async () => {
@@ -88,6 +93,15 @@ export function DataBarang() {
     fetchKategori();
   }, []);
 
+  const handleFilterChange = (name, value) => {
+    setFilters(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const openDeleteModal = (id) => {
+    setItemToDelete(id);
+    setIsModalOpen(true);
+  };
+  
   const confirmDelete = async () => {
     if (!itemToDelete) return;
     const token = localStorage.getItem("authToken");
@@ -99,38 +113,13 @@ export function DataBarang() {
       if (!response.ok) throw new Error("Gagal menghapus barang");
       setIsModalOpen(false);
       setItemToDelete(null);
-      await fetchBarang(); 
+      // Data akan di-refetch oleh useEffect
     } catch (error) {
       console.error(error);
+      toast.error("Gagal menghapus barang.");
       setIsModalOpen(false);
     }
   };
-  
-  const openDeleteModal = (id) => {
-    setItemToDelete(id);
-    setIsModalOpen(true);
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-  };
-
-  const handleKategoriChange = (value) => {
-    setSelectedKategori(value);
-  };
-
-  const filteredBarang = barang.filter(item => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearchQuery = 
-        item.nama_barang.toLowerCase().includes(query) ||
-        item.kode_barang.toLowerCase().includes(query) ||
-        (item.merk && item.merk.toLowerCase().includes(query)) ||
-        (item.tipe && item.tipe.toLowerCase().includes(query));
-    
-    const matchesKategori = selectedKategori ? item.nama_kategori === selectedKategori : true;
-
-    return matchesSearchQuery && matchesKategori;
-  });
 
   const canAdd = user && (user.role === 'Admin' || user.role === 'Pengurus Barang');
   const canEditOrDelete = user && user.role === 'Admin';
@@ -160,27 +149,35 @@ export function DataBarang() {
             </div>
           </CardHeader>
           <CardBody className="px-4 pt-0 pb-2">
-            <div className="mb-4 flex flex-col md:flex-row items-center gap-4">
-                <div className="w-full md:w-72">
+            <div className="mb-4 p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="w-full">
                     <Input
                         label="Cari Barang..."
                         icon={<MagnifyingGlassIcon className="h-5 w-5" />}
-                        value={searchQuery}
-                        onChange={handleSearchChange}
+                        onChange={(e) => handleFilterChange('search', e.target.value)}
                     />
                 </div>
-                <div className="w-full md:w-72">
-                    <Select
-                        label="Filter Berdasarkan Kategori"
-                        value={selectedKategori}
-                        onChange={handleKategoriChange}
-                    >
+                <div className="w-full">
+                    <Select label="Filter Status" value={filters.status} onChange={(val) => handleFilterChange('status', val)}>
+                      <Option value="Semua">Semua Status</Option>
+                      <Option value="Tersedia">Tersedia</Option>
+                      <Option value="Dipinjam">Dipinjam</Option>
+                      <Option value="Dalam Perbaikan">Dalam Perbaikan</Option>
+                      <Option value="Tidak Aktif">Tidak Aktif</Option>
+                      <Option value="Ditolak">Ditolak</Option>
+                      <Option value="Menunggu Validasi">Menunggu Validasi</Option>
+                    </Select>
+                </div>
+                <div className="w-full">
+                    <Select label="Filter Kategori" value={filters.kategori_id} onChange={(val) => handleFilterChange('kategori_id', val)}>
                         <Option value="">Semua Kategori</Option>
                         {kategoriList.map((kat) => (
-                            <Option key={kat.id} value={kat.nama_kategori}>{kat.nama_kategori}</Option>
+                            <Option key={kat.id} value={String(kat.id)}>{kat.nama_kategori}</Option>
                         ))}
                     </Select>
                 </div>
+                <Input type="date" label="Dari Tanggal Perolehan" onChange={(e) => handleFilterChange('startDate', e.target.value)} />
+                <Input type="date" label="Sampai Tanggal Perolehan" onChange={(e) => handleFilterChange('endDate', e.target.value)} />
             </div>
 
             <div className="overflow-x-scroll">
@@ -195,13 +192,12 @@ export function DataBarang() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredBarang.map((item, key) => (
+                  {barang.map((item, key) => (
                       <tr key={item.id}>
                         <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-semibold">{key + 1}</Typography></td>
                         <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-semibold">{item.nama_barang}</Typography></td>
                         <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal">{item.kode_barang}</Typography></td>
                         <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal">{item.nama_kategori || '-'}</Typography></td>
-                        {/* --- PERUBAHAN DI SINI: Tambah Data Merk/Tipe --- */}
                         <td className="py-3 px-5 border-b border-blue-gray-50"><Typography className="text-xs font-normal">{item.merk || ''}{item.tipe ? ` / ${item.tipe}` : ''}</Typography></td>
                         <td className="py-3 px-5 border-b border-blue-gray-50">
                           <Chip
